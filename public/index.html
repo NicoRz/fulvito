@@ -926,6 +926,96 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* ==========================================================================
+       9. DISEÑO RESPONSIVO (MOBILE)
+       ========================================================================== */
+    @media (max-width: 768px) {
+      .player-wrapper {
+        height: calc(100vh - 220px);
+      }
+
+      .controls-panel {
+        padding: 10px 14px;
+        gap: 10px;
+      }
+
+      .controls-row {
+        display: grid;
+        grid-template-areas:
+          "left center"
+          "right right";
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 10px;
+        height: auto;
+        width: 100%;
+        padding: 4px 0;
+      }
+
+      .controls-left {
+        grid-area: left;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+
+      .controls-center {
+        grid-area: center;
+        justify-content: flex-end;
+      }
+
+      .controls-right {
+        grid-area: right;
+        justify-content: space-between;
+        width: 100%;
+        gap: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 10px;
+        margin-top: 4px;
+      }
+
+      .file-name-info {
+        max-width: 75px;
+      }
+
+      .toast {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+      }
+
+      .player-wrapper.fullscreen-active .controls-panel {
+        bottom: 12px;
+        width: calc(100% - 16px);
+        padding: 8px 12px;
+      }
+
+      .sidebar-panel {
+        width: 100%;
+        max-width: 280px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .upload-card {
+        padding: 40px 20px;
+        min-height: 300px;
+      }
+
+      .upload-text h2 {
+        font-size: 18px;
+      }
+
+      .upload-text p {
+        font-size: 12px;
+      }
+
+      .file-name-info {
+        display: none; /* Ocultamos el nombre de archivo en pantallas muy pequeñas para evitar colapsos */
+      }
+    }
   </style>
 </head>
 <body>
@@ -1318,6 +1408,7 @@
         
         ffmpegInstance = createFFmpeg({
           log: false,
+          mainName: 'main',
           corePath: 'ffmpeg-core.js'
         });
 
@@ -1346,6 +1437,7 @@
           
           ffmpegInstance = createFFmpeg({
             log: false,
+            mainName: 'main',
             corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
           });
 
