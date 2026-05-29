@@ -1,0 +1,2 @@
+# Excluir configuraciones de Firebase para evitar alertas de GitHub Secrets
+public/firebase-config.js

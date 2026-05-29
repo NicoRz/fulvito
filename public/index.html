@@ -1187,6 +1187,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
+  <!-- Configuración de Firebase (archivo externo gitignorado para evitar fugas de secrets) -->
+  <script src="firebase-config.js"></script>
+
   <!-- Carga local de FFmpeg.wasm para soporte offline completo -->
   <script src="ffmpeg.min.js"></script>
 
@@ -1196,22 +1199,14 @@
        ========================================================================== */
 
     // --- Inicialización de Firebase Analytics ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyCl8cLAJheUBtUvHoHqvnMsmLgOOrhUSWc",
-      authDomain: "fulvito-93.firebaseapp.com",
-      projectId: "fulvito-93",
-      storageBucket: "fulvito-93.firebasestorage.app",
-      messagingSenderId: "610855169628",
-      appId: "1:610855169628:web:c9a25031e214e9e9304099",
-      measurementId: "G-LQYEZCGV4Y"
-    };
-
     let analytics = null;
     try {
-      if (typeof firebase !== 'undefined') {
+      if (typeof firebase !== 'undefined' && typeof firebaseConfig !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         analytics = firebase.analytics();
         addLog('Firebase Analytics inicializado correctamente.');
+      } else {
+        addLog('Firebase Analytics no inicializado (falta la configuración o SDK).');
       }
     } catch (e) {
       console.warn('Fallo al inicializar Firebase (¿offline?):', e);
