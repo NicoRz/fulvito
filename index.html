@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fulvito Video Clipper - Editor de Video Local</title>
+  
+  <!-- Tipografía moderna desde Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       1. VARIABLES Y DISEÑO DEL SISTEMA
+       ========================================================================== */
+    :root {
+      --bg-dark: #07080d;
+      --bg-workspace: #020204;
+      --bg-card: rgba(15, 18, 30, 0.75);
+      --bg-card-border: rgba(255, 255, 255, 0.06);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --accent: #a855f7;
+      --accent-glow: rgba(168, 85, 247, 0.25);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.3);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.12) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      line-height: 1.5;
+    }
+
+    /* Ocultamos el input de archivo nativo */
+    #file-input {
+      display: none !important;
+    }
+
+    /* ==========================================================================
+       2. CABECERA (SLIM HEADER)
+       ========================================================================== */
+    header {
+      height: 54px;
+      min-height: 54px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      background: rgba(10, 12, 20, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 40;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-logo svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(120deg, #ffffff, #d1d5db);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.3px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Badge FFmpeg */
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--text-muted);
+      position: relative;
+    }
+
+    .status-dot::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      border-radius: 50%;
+      background-color: inherit;
+      opacity: 0.4;
+      animation: statusPulse 2s infinite;
+    }
+
+    .status-loading .status-dot { background-color: var(--warning); }
+    .status-ready .status-dot { background-color: var(--success); }
+    .status-ready { box-shadow: 0 0 10px var(--success-glow); }
+    .status-fallback .status-dot { background-color: var(--danger); }
+
+    /* ==========================================================================
+       3. DISEÑO CINEMÁTICO (WORKSPACE)
+       ========================================================================== */
+    .main-layout {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Sección del reproductor */
+    .player-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-workspace);
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      height: 100%;
+    }
+
+    /* Tarjeta de Carga V1 */
+    .upload-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 24px;
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 580px;
+      min-height: 360px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+      transition: var(--transition-base);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 0 30px var(--primary-glow);
+      transform: translateY(-4px);
+    }
+
+    .upload-icon-container {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      transition: var(--transition-base);
+    }
+
+    .upload-card:hover .upload-icon-container {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+      transform: scale(1.1);
+    }
+
+    .upload-icon-container svg {
+      width: 36px;
+      height: 36px;
+      color: var(--text-muted);
+      transition: var(--transition-base);
+    }
+
+    .upload-card:hover .upload-icon-container svg {
+      color: var(--primary);
+    }
+
+    .upload-text h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .upload-text p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition-base);
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.95;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Contenedor del reproductor */
+    .video-viewport {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: var(--transition-base);
+    }
+
+    #main-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Wrapper de reproducción normal */
+    .player-wrapper {
+      width: 100%;
+      max-width: 1050px;
+      height: calc(100vh - 190px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      transition: var(--transition-base);
+    }
+
+    /* ==========================================================================
+       4. CONTROLES DEL REPRODUCTOR (SLIDER Y PANEL INFERIOR)
+       ========================================================================== */
+    .controls-panel {
+      width: 100%;
+      background: var(--bg-card);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 16px;
+      padding: 12px 20px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Línea de tiempo */
+    .timeline-container {
+      position: relative;
+      width: 100%;
+      height: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      user-select: none;
+    }
+
+    .timeline-track {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+    }
+
+    .timeline-range-highlight {
+      position: absolute;
+      height: 5px;
+      background: linear-gradient(90deg, var(--danger), var(--accent));
+      opacity: 0.6;
+      border-radius: 3px;
+      pointer-events: none;
+      width: 0;
+      left: 0;
+    }
+
+    .timeline-progress {
+      position: absolute;
+      left: 0;
+      height: 5px;
+      background: var(--primary);
+      border-radius: 3px;
+      pointer-events: none;
+      width: 0;
+    }
+
+    .timeline-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(99, 102, 241, 0.4);
+      transform: translate(-50%, -50%);
+      top: 50%;
+      z-index: 10;
+      pointer-events: none;
+      transition: transform 0.1s ease;
+    }
+
+    .timeline-container:hover .timeline-handle {
+      transform: translate(-50%, -50%) scale(1.2);
+    }
+
+    .timeline-marker {
+      position: absolute;
+      width: 4px;
+      height: 12px;
+      border-radius: 2px;
+      transform: translate(-50%, -50%);
+      top: 50%;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .start-marker {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success-glow);
+    }
+
+    .end-marker {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger-glow);
+    }
+
+    /* Fila de controles inferiores */
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 48px;
+      width: 100%;
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      justify-content: flex-start;
+    }
+
+    .controls-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0 10px;
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    /* Botón Único de Grabación */
+    .record-btn-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .record-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: transparent;
+      border: 3.5px solid var(--danger);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+    }
+
+    .record-btn-inner {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: var(--danger);
+      transition: all 0.3s ease;
+    }
+
+    .record-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 16px var(--danger-glow);
+      border-color: #ff6b6b;
+    }
+
+    .record-btn:hover .record-btn-inner {
+      background-color: #ff6b6b;
+    }
+
+    .record-btn.recording {
+      border-color: #ffffff;
+      animation: recordVibrate 0.15s infinite linear, recordGlowPulse 1.5s infinite ease-in-out;
+    }
+
+    .record-btn.recording .record-btn-inner {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background-color: var(--danger);
+    }
+
+    .record-tooltip {
+      position: absolute;
+      top: -28px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: var(--transition-base);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .record-tooltip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Botones generales de control */
+    .control-btn {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: var(--transition-base);
+    }
+
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .control-btn svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .play-btn-large {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: none;
+      color: white;
+      box-shadow: 0 4px 10px var(--primary-glow);
+    }
+
+    .play-btn-large:hover {
+      background: var(--primary-hover);
+      transform: scale(1.05);
+    }
+
+    .time-display {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'Fira Code', monospace;
+    }
+
+    .speed-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition-base);
+    }
+
+    .speed-badge:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .speed-badge.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* ==========================================================================
+       5. ESTILOS DE PANTALLA COMPLETA EN NAVEGADOR
+       ========================================================================== */
+    .player-wrapper.fullscreen-active {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      background: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      z-index: 1000;
+    }
+
+    .player-wrapper.fullscreen-active .video-viewport {
+      width: 100%;
+      height: 100%;
+      max-width: 100vw;
+      border-radius: 0;
+      border: none;
+      background: #000000;
+    }
+
+    .player-wrapper.fullscreen-active .controls-panel {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 60px);
+      max-width: 800px;
+      background: rgba(10, 13, 24, 0.75);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      z-index: 1010;
+    }
+
+    /* ==========================================================================
+       6. LATERAL DESPLEGABLE (DRAWER CONFIGURACIONES Y LOGS)
+       ========================================================================== */
+    .sidebar-panel {
+      width: 320px;
+      background: rgba(10, 13, 23, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 16px;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 50;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar-panel.collapsed {
+      transform: translateX(100%);
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .panel-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-select {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .form-select option {
+      background-color: var(--bg-dark);
+    }
+
+    .clip-meta-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .meta-lbl { color: var(--text-muted); }
+    .meta-val { font-family: 'Fira Code', monospace; }
+
+    .console-box {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 10px;
+      color: #34d399;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .log-item {
+      line-height: 1.3;
+    }
+
+    .log-time {
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       7. COMPONENTE TOAST DE NOTIFICACIONES PERSONALIZADAS
+       ========================================================================== */
+    .toast {
+      position: absolute; 
+      top: 24px;
+      right: 24px;
+      background: rgba(16, 185, 129, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      z-index: 2000;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+      transform: translateY(-20px);
+      opacity: 0;
+      pointer-events: auto;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .toast-icon svg {
+      width: 14px;
+      height: 14px;
+      color: white;
+      display: block;
+    }
+
+    .toast-content h4 {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      line-height: 1.2;
+    }
+
+    .toast-content p {
+      font-size: 11px;
+      opacity: 0.9;
+      line-height: 1.3;
+    }
+
+    .toast-close {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+      opacity: 0.7;
+      margin-left: 8px;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    /* Modal de Procesamiento */
+    .export-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(5, 6, 11, 0.9);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .export-modal {
+      background: #0d0f1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+    }
+
+    .export-modal h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .export-modal p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      width: 0%;
+      box-shadow: 0 0 8px var(--primary-glow);
+    }
+
+    .progress-pct {
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ==========================================================================
+       8. ANIMACIONES
+       ========================================================================== */
+    @keyframes statusPulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes recordVibrate {
+      0% { transform: scale(1.05) translate(0, 0); }
+      20% { transform: scale(1.05) translate(-1px, 1px); }
+      40% { transform: scale(1.05) translate(1px, -1px); }
+      60% { transform: scale(1.05) translate(-1px, -1px); }
+      80% { transform: scale(1.05) translate(1px, 1px); }
+      100% { transform: scale(1.05) translate(0, 0); }
+    }
+
+    @keyframes recordGlowPulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .file-name-info {
+      font-size: 11px;
+      color: var(--text-muted);
+      max-width: 140px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cabecera Slim -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+        </svg>
+      </div>
+      <h1>Fulvito Clipper</h1>
+    </div>
+    
+    <div class="header-actions">
+      <!-- Indicador FFmpeg -->
+      <div id="ffmpeg-status" class="status-badge status-loading">
+        <div class="status-dot"></div>
+        <span id="ffmpeg-status-text">Cargando Motor...</span>
+      </div>
+
+      <!-- Botón Configuración/Logs -->
+      <button class="control-btn" id="toggle-sidebar-btn" title="Configuración e Historial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Entorno principal -->
+  <div class="main-layout">
+    
+    <!-- Centro: Área del Reproductor -->
+    <main class="player-section">
+      
+      <!-- 1. Cargador de Archivo (Al inicio) -->
+      <div id="upload-container" class="upload-card">
+        <div class="upload-icon-container">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <div class="upload-text">
+          <h2>Carga tu video para recortar</h2>
+          <p>Arrastra tu archivo .mp4 aquí o búscalo en tu PC</p>
+        </div>
+        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+          Abrir Archivo
+        </button>
+        <input type="file" id="file-input" accept="video/mp4">
+      </div>
+
+      <!-- 2. Wrapper para Video y Controles (Permite Pantalla Completa nativa o en navegador) -->
+      <div class="player-wrapper hidden" id="player-wrapper">
+        
+        <!-- Viewport del video -->
+        <div class="video-viewport">
+          <video id="main-video" playsinline></video>
+        </div>
+
+        <!-- Panel de Controles Unificado -->
+        <div class="controls-panel">
+          <!-- Línea de tiempo -->
+          <div class="timeline-container" id="timeline-container">
+            <div class="timeline-track"></div>
+            <div class="timeline-range-highlight" id="timeline-range-highlight"></div>
+            <div class="timeline-progress" id="timeline-progress"></div>
+            <div class="timeline-handle" id="timeline-handle"></div>
+            <div class="timeline-marker start-marker hidden" id="timeline-start-marker"></div>
+            <div class="timeline-marker end-marker hidden" id="timeline-end-marker"></div>
+          </div>
+
+          <!-- Botonera -->
+          <div class="controls-row">
+            
+            <!-- Izquierda: Seek, Play y Volumen -->
+            <div class="controls-left">
+              <button class="control-btn" id="seek-back-btn" title="Retroceder 10s">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                  <text x="7" y="15" font-size="7" font-weight="bold" fill="currentColor" stroke="none">10</text>
+                </svg>
+              </button>
+              
+              <button class="control-btn play-btn-large" id="play-btn" title="Reproducir / Pausar">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+              
+              <button class="control-btn" id="seek-forward-btn" title="Avanzar 10s">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 0 .57-8.38l-5.67-5.67"></path>
+                  <text x="7" y="15" font-size="7" font-weight="bold" fill="currentColor" stroke="none">10</text>
+                </svg>
+              </button>
+
+              <button class="control-btn" id="mute-btn" title="Silenciar">
+                <svg id="mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Centro: Botón Único de Grabación -->
+            <div class="controls-center">
+              <div class="record-btn-wrapper">
+                <div class="record-tooltip" id="record-tooltip">Grabando: 0.0s</div>
+                <button class="record-btn" id="record-btn" title="Iniciar / Detener Grabación de Clip">
+                  <div class="record-btn-inner"></div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Derecha: Tiempos, Velocidad, Pantalla Completa y Cerrar -->
+            <div class="controls-right">
+              <div class="speed-badge" id="speed-btn">1x</div>
+              
+              <div class="time-display">
+                <span id="current-time-display">00:00</span> / <span id="duration-display">00:00</span>
+              </div>
+              
+              <span class="file-name-info" id="file-name-display" title="video.mp4">video.mp4</span>
+              
+              <!-- Botón Pantalla Completa en Ventana (Web Full-Viewport) -->
+              <button class="control-btn" id="fullscreen-btn" title="Pantalla Completa (Navegador)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </button>
+
+              <button class="control-btn" id="change-video-btn" title="Cerrar video" style="color: var(--danger); border-color: rgba(239,68,68,0.2);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 
+          * CRÍTICO: Movemos el Toast y el Export Overlay dentro del wrapper del reproductor.
+          * Esto permite que se rendericen visualmente por encima de los controles y del video
+          * cuando player-wrapper está posicionado de forma fija cubriendo toda la pestaña.
+        -->
+        
+        <!-- Componente Toast de Notificación Reusable -->
+        <div id="toast" class="toast hidden">
+          <div class="toast-icon" id="toast-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="toast-content">
+            <h4 id="toast-title">¡Éxito!</h4>
+            <p id="toast-message">El archivo ha sido exportado correctamente.</p>
+          </div>
+          <button class="toast-close" id="toast-close-btn">&times;</button>
+        </div>
+
+        <!-- Modal de Progreso de Exportación -->
+        <div id="export-overlay" class="export-overlay hidden">
+          <div class="export-modal">
+            <h3 id="export-status-title">Procesando Video</h3>
+            <p id="export-status-desc">Cortando el clip del archivo original...</p>
+            
+            <div class="progress-bar-container">
+              <div id="export-progress-bar" class="progress-bar-fill"></div>
+            </div>
+            
+            <div id="export-progress-pct" class="progress-pct">0%</div>
+            
+            <div>
+              <button id="cancel-export-btn" class="btn btn-secondary">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Derecha: Sidebar Desplegable (Configuración y Logs) -->
+    <aside class="sidebar-panel collapsed" id="sidebar-panel">
+      <div class="sidebar-header">
+        <h3>Panel de Control</h3>
+        <button class="control-btn" id="close-sidebar-btn" style="width:28px; height:28px; border:none; background:transparent;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Configuración -->
+      <div>
+        <div class="panel-section-title">Ajustes de Exportación</div>
+        
+        <div class="form-group">
+          <label class="form-label" style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:4px;" for="export-method">Método de Procesamiento</label>
+          <select class="form-select" id="export-method">
+            <option value="ffmpeg">FFmpeg.wasm (Ultra-rápido, sin pérdida)</option>
+            <option value="mediarecorder">MediaRecorder (Fallback, tiempo real)</option>
+          </select>
+        </div>
+
+        <button class="btn btn-secondary" id="reset-clip-btn" style="width:100%; padding: 8px; font-size:12px;">
+          Limpiar Selección
+        </button>
+      </div>
+
+      <!-- Datos del Clip Seleccionado -->
+      <div>
+        <div class="panel-section-title">Intervalo de Clip</div>
+        <div class="clip-meta-box">
+          <div class="meta-row">
+            <span class="meta-lbl">Inicio (Start):</span>
+            <span class="meta-val" id="clip-start-text">--:--.--</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-lbl">Fin (End):</span>
+            <span class="meta-val" id="clip-end-text">--:--.--</span>
+          </div>
+          <div class="meta-row" style="border-top: 1px solid rgba(255,255,255,0.05); margin-top:4px; padding-top:4px;">
+            <span class="meta-lbl" style="font-weight:700;">Duración:</span>
+            <span class="meta-val" id="clip-duration-display" style="color:var(--accent); font-weight:700;">0.0s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Consola de Historial -->
+      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+        <div class="panel-section-title">Registro de Procesamiento</div>
+        <div class="console-box" id="console-logs">
+          <!-- Inyección dinámica de logs -->
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- 
+    ==========================================================================
+    INTEGRACIÓN DE FIRBASE (SDKS DE FIREBASE E INICIALIZACIÓN COMPAT)
+    ==========================================================================
+  -->
+  <!-- Cargamos las librerías Compat de Firebase vía CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+
+  <!-- Carga local de FFmpeg.wasm para soporte offline completo -->
+  <script src="ffmpeg.min.js"></script>
+
+  <script>
+    /* ==========================================================================
+       9. LÓGICA DE JAVASCRIPT
+       ========================================================================== */
+
+    // --- Inicialización de Firebase Analytics ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCl8cLAJheUBtUvHoHqvnMsmLgOOrhUSWc",
+      authDomain: "fulvito-93.firebaseapp.com",
+      projectId: "fulvito-93",
+      storageBucket: "fulvito-93.firebasestorage.app",
+      messagingSenderId: "610855169628",
+      appId: "1:610855169628:web:c9a25031e214e9e9304099",
+      measurementId: "G-LQYEZCGV4Y"
+    };
+
+    let analytics = null;
+    try {
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        analytics = firebase.analytics();
+        addLog('Firebase Analytics inicializado correctamente.');
+      }
+    } catch (e) {
+      console.warn('Fallo al inicializar Firebase (¿offline?):', e);
+    }
+
+    // Referencias del DOM
+    const video = document.getElementById('main-video');
+    const uploaderCard = document.getElementById('upload-container');
+    const fileInput = document.getElementById('file-input');
+    const playerWrapper = document.getElementById('player-wrapper');
+    
+    const playBtn = document.getElementById('play-btn');
+    const seekBackBtn = document.getElementById('seek-back-btn');
+    const seekForwardBtn = document.getElementById('seek-forward-btn');
+    const speedBtn = document.getElementById('speed-btn');
+    const muteBtn = document.getElementById('mute-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const changeVideoBtn = document.getElementById('change-video-btn');
+    
+    const recordBtn = document.getElementById('record-btn');
+    const recordTooltip = document.getElementById('record-tooltip');
+    
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+    const sidebarPanel = document.getElementById('sidebar-panel');
+    const resetClipBtn = document.getElementById('reset-clip-btn');
+    
+    const exportMethodSelect = document.getElementById('export-method');
+    const consoleLogs = document.getElementById('console-logs');
+    
+    const exportOverlay = document.getElementById('export-overlay');
+    const exportProgressBar = document.getElementById('export-progress-bar');
+    const exportProgressPct = document.getElementById('export-progress-pct');
+    const exportStatusTitle = document.getElementById('export-status-title');
+    const exportStatusDesc = document.getElementById('export-status-desc');
+    const cancelExportBtn = document.getElementById('cancel-export-btn');
+
+    // Estado general
+    let currentFile = null;
+    let clipStart = null;
+    let clipEnd = null;
+    let isRecordingState = false;
+    let recordingTimer = null;
+    
+    let ffmpegInstance = null;
+    let ffmpegLoaded = false;
+    let activeMediaRecorder = null;
+    let mediaRecorderInterval = null;
+    let controlsTimeout = null;
+
+    // SVG Icons
+    const playIconSVG = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+    const pauseIconSVG = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+    const muteIconSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
+    const unMuteIconSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
+    
+    const enterFullscreenIconSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>';
+    const exitFullscreenIconSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"></path></svg>';
+
+    // Helper de Analytics para loggeo seguro
+    function trackEvent(eventName, eventParams = {}) {
+      if (analytics) {
+        try {
+          analytics.logEvent(eventName, eventParams);
+        } catch (e) {
+          console.warn('Error al enviar evento a Analytics:', e);
+        }
+      }
+    }
+
+    // ==========================================================================
+    // A. INICIALIZACIÓN DE MOTOR DE CORTES
+    // ==========================================================================
+
+    function addLog(message) {
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item';
+      const now = new Date();
+      const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`;
+      logItem.innerHTML = `<span class="log-time">[${timeStr}]</span> ${escapeHtml(message)}`;
+      consoleLogs.appendChild(logItem);
+      consoleLogs.scrollTop = consoleLogs.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    function updateFFmpegStatus(state, text) {
+      const badge = document.getElementById('ffmpeg-status');
+      badge.className = 'status-badge';
+      if (state === 'loading') badge.classList.add('status-loading');
+      else if (state === 'ready') badge.classList.add('status-ready');
+      else badge.classList.add('status-fallback');
+      document.getElementById('ffmpeg-status-text').textContent = text;
+    }
+
+    async function initFFmpeg() {
+      updateFFmpegStatus('loading', 'Cargando Motor...');
+      addLog('Inicializando motor local de FFmpeg.wasm...');
+      
+      try {
+        if (typeof FFmpeg === 'undefined') {
+          throw new Error('Librería no definida en el contexto global.');
+        }
+
+        const { createFFmpeg } = FFmpeg;
+        
+        ffmpegInstance = createFFmpeg({
+          log: false,
+          corePath: 'ffmpeg-core.js'
+        });
+
+        ffmpegInstance.setLogger(({ type, message }) => {
+          if (message.includes('frame=') || message.includes('Duration') || message.includes('Output')) {
+            addLog(`[FFmpeg] ${message}`);
+          }
+        });
+
+        ffmpegInstance.setProgress(({ ratio }) => {
+          if (ratio >= 0 && ratio <= 1) {
+            updateExportProgress(ratio);
+          }
+        });
+
+        await ffmpegInstance.load();
+        ffmpegLoaded = true;
+        updateFFmpegStatus('ready', 'FFmpeg Listo (Local)');
+        addLog('FFmpeg.wasm cargado LOCALMENTE. Cortes sin pérdida de calidad disponibles.');
+      } catch (err) {
+        console.warn('Fallo al cargar localmente, recurriendo a CDN...', err);
+        addLog('Fallo en archivos locales. Solicitando motor de respaldo a unpkg...');
+        
+        try {
+          const { createFFmpeg } = FFmpeg;
+          
+          ffmpegInstance = createFFmpeg({
+            log: false,
+            corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
+          });
+
+          ffmpegInstance.setLogger(({ type, message }) => {
+            if (message.includes('frame=') || message.includes('Duration') || message.includes('Output')) {
+              addLog(`[FFmpeg] ${message}`);
+            }
+          });
+
+          ffmpegInstance.setProgress(({ ratio }) => {
+            if (ratio >= 0 && ratio <= 1) {
+              updateExportProgress(ratio);
+            }
+          });
+
+          await ffmpegInstance.load();
+          ffmpegLoaded = true;
+          updateFFmpegStatus('ready', 'FFmpeg Listo (CDN)');
+          addLog('FFmpeg.wasm cargado desde CDN de unpkg.');
+        } catch (cdnErr) {
+          console.error('Fallo absoluto al cargar FFmpeg:', cdnErr);
+          ffmpegLoaded = false;
+          updateFFmpegStatus('fallback', 'Modo Fallback');
+          addLog('FFmpeg no disponible. Se utilizará MediaRecorder de forma predeterminada.');
+          exportMethodSelect.value = 'mediarecorder';
+          
+          const opt = exportMethodSelect.querySelector('option[value="ffmpeg"]');
+          if (opt) {
+            opt.disabled = true;
+            opt.textContent += ' (No disponible)';
+          }
+        }
+      }
+    }
+
+    window.addEventListener('load', () => {
+      addLog('Sistema inicializado.');
+      
+      if (typeof FFmpeg === 'undefined') {
+        addLog('Inyectando script de respaldo FFmpeg.wasm...');
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js';
+        script.onload = () => initFFmpeg();
+        script.onerror = () => {
+          updateFFmpegStatus('fallback', 'Modo Fallback');
+          addLog('Fallo al cargar script de respaldo. Usando MediaRecorder.');
+          exportMethodSelect.value = 'mediarecorder';
+        };
+        document.head.appendChild(script);
+      } else {
+        initFFmpeg();
+      }
+    });
+
+    // ==========================================================================
+    // B. MANEJO DE ARCHIVOS DE VIDEO
+    // ==========================================================================
+
+    uploaderCard.addEventListener('dragover', (e) => { e.preventDefault(); uploaderCard.style.borderColor = 'var(--primary)'; });
+    uploaderCard.addEventListener('dragleave', () => { uploaderCard.style.borderColor = ''; });
+    uploaderCard.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploaderCard.style.borderColor = '';
+      if (e.dataTransfer.files.length > 0) {
+        loadVideo(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        loadVideo(e.target.files[0]);
+      }
+    });
+
+    function loadVideo(file) {
+      if (!file.name.toLowerCase().endsWith('.mp4') && !file.type.startsWith('video/')) {
+        showToast('Archivo Inválido', 'Por favor selecciona un video .mp4 válido.', 'error');
+        return;
+      }
+      
+      currentFile = file;
+      addLog(`Cargando video: ${file.name} (${formatBytes(file.size)})`);
+      
+      // Tracking
+      trackEvent('video_loaded', { file_size: file.size, file_name: file.name });
+
+      uploaderCard.classList.add('hidden');
+      playerWrapper.classList.remove('hidden');
+      
+      video.src = URL.createObjectURL(file);
+      document.getElementById('file-name-display').textContent = file.name;
+      document.getElementById('file-name-display').setAttribute('title', file.name);
+      
+      resetClippingState();
+    }
+
+    changeVideoBtn.addEventListener('click', () => {
+      if (confirm('¿Cerrar el video actual y cargar otro?')) {
+        video.pause();
+        video.src = '';
+        currentFile = null;
+        resetClippingState();
+        playerWrapper.classList.add('hidden');
+        uploaderCard.classList.remove('hidden');
+        fileInput.value = '';
+        addLog('Video cerrado. Pantalla de carga activa.');
+      }
+    });
+
+    // ==========================================================================
+    // C. CONTROLES DEL REPRODUCTOR Y PANTALLA COMPLETA EN NAVEGADOR
+    // ==========================================================================
+
+    playBtn.addEventListener('click', () => {
+      if (video.paused) video.play();
+      else video.pause();
+    });
+
+    video.addEventListener('play', () => { playBtn.innerHTML = pauseIconSVG; });
+    video.addEventListener('pause', () => { playBtn.innerHTML = playIconSVG; });
+
+    seekBackBtn.addEventListener('click', () => {
+      if (!video.duration) return;
+      video.currentTime = Math.max(0, video.currentTime - 10);
+    });
+
+    seekForwardBtn.addEventListener('click', () => {
+      if (!video.duration) return;
+      video.currentTime = Math.min(video.duration, video.currentTime + 10);
+    });
+
+    speedBtn.addEventListener('click', () => {
+      if (!video.duration) return;
+      if (video.playbackRate === 1.0) {
+        video.playbackRate = 2.0;
+        speedBtn.textContent = '2x';
+        speedBtn.classList.add('active');
+        addLog('Velocidad establecida a 2.0x.');
+        trackEvent('playback_speed_changed', { speed: 2.0 });
+      } else {
+        video.playbackRate = 1.0;
+        speedBtn.textContent = '1x';
+        speedBtn.classList.remove('active');
+        addLog('Velocidad establecida a 1.0x.');
+        trackEvent('playback_speed_changed', { speed: 1.0 });
+      }
+    });
+
+    muteBtn.addEventListener('click', () => {
+      video.muted = !video.muted;
+      if (video.muted) {
+        muteBtn.innerHTML = unMuteIconSVG;
+        muteBtn.setAttribute('title', 'Activar Sonido');
+      } else {
+        muteBtn.innerHTML = muteIconSVG;
+        muteBtn.setAttribute('title', 'Silenciar');
+      }
+    });
+
+    // --- Lógica de Pantalla Completa en Ventana (Web Full-Viewport) ---
+    fullscreenBtn.addEventListener('click', () => {
+      const isFullscreen = playerWrapper.classList.toggle('fullscreen-active');
+      
+      if (isFullscreen) {
+        fullscreenBtn.innerHTML = exitFullscreenIconSVG;
+        fullscreenBtn.setAttribute('title', 'Salir de Pantalla Completa');
+        sidebarPanel.classList.add('collapsed'); 
+        addLog('Modo pantalla completa (navegador) activado.');
+        trackEvent('fullscreen_toggled', { active: true });
+        showControlsInFullscreen(); 
+      } else {
+        exitFullViewportMode();
+      }
+    });
+
+    function exitFullViewportMode() {
+      playerWrapper.classList.remove('fullscreen-active');
+      fullscreenBtn.innerHTML = enterFullscreenIconSVG;
+      fullscreenBtn.setAttribute('title', 'Pantalla Completa');
+      addLog('Modo pantalla completa (navegador) desactivado.');
+      trackEvent('fullscreen_toggled', { active: false });
+      
+      const panel = document.querySelector('.controls-panel');
+      panel.style.opacity = '1';
+      panel.style.pointerEvents = 'auto';
+      playerWrapper.style.cursor = 'default';
+      clearTimeout(controlsTimeout);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && playerWrapper.classList.contains('fullscreen-active')) {
+        exitFullViewportMode();
+      }
+    });
+
+    function showControlsInFullscreen() {
+      const panel = document.querySelector('.controls-panel');
+      if (!panel || !playerWrapper.classList.contains('fullscreen-active')) return;
+      
+      panel.style.opacity = '1';
+      panel.style.pointerEvents = 'auto';
+      playerWrapper.style.cursor = 'default';
+      
+      clearTimeout(controlsTimeout);
+      
+      controlsTimeout = setTimeout(() => {
+        if (playerWrapper.classList.contains('fullscreen-active') && !isRecordingState) {
+          panel.style.opacity = '0';
+          panel.style.pointerEvents = 'none';
+          playerWrapper.style.cursor = 'none';
+        }
+      }, 3000);
+    }
+
+    playerWrapper.addEventListener('mousemove', () => {
+      if (playerWrapper.classList.contains('fullscreen-active')) {
+        showControlsInFullscreen();
+      }
+    });
+
+    // ==========================================================================
+    // D. GESTIÓN DE LA LÍNEA DE TIEMPO
+    // ==========================================================================
+
+    video.addEventListener('loadedmetadata', () => {
+      document.getElementById('duration-display').textContent = formatTime(video.duration);
+      document.getElementById('current-time-display').textContent = formatTime(0);
+      updateTimelineProgress();
+    });
+
+    video.addEventListener('timeupdate', () => {
+      updateTimelineProgress();
+    });
+
+    const timeline = document.getElementById('timeline-container');
+    const timelineProgress = document.getElementById('timeline-progress');
+    const timelineHandle = document.getElementById('timeline-handle');
+    let isDragging = false;
+
+    timeline.addEventListener('mousedown', (e) => {
+      if (!video.duration) return;
+      isDragging = true;
+      seekVideo(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) seekVideo(e);
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    function seekVideo(e) {
+      const rect = timeline.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(clickX / rect.width, 1));
+      video.currentTime = pct * video.duration;
+    }
+
+    function updateTimelineProgress() {
+      if (!video.duration) return;
+      const pct = (video.currentTime / video.duration) * 100;
+      timelineProgress.style.width = `${pct}%`;
+      timelineHandle.style.left = `${pct}%`;
+      document.getElementById('current-time-display').textContent = formatTime(video.currentTime);
+    }
+
+    // ==========================================================================
+    // E. LÓGICA DE RECORTE CON UN ÚNICO BOTÓN
+    // ==========================================================================
+
+    recordBtn.addEventListener('click', () => {
+      if (!video.duration) return;
+
+      if (!isRecordingState) {
+        // Iniciar grabación
+        clipStart = video.currentTime;
+        clipEnd = null;
+        isRecordingState = true;
+        
+        recordBtn.classList.add('recording');
+        recordTooltip.classList.add('show');
+        
+        addLog(`Inicio de clip marcado a los ${clipStart.toFixed(2)}s. Grabando...`);
+        showToast('Grabando Clip', 'Grabación de intervalo iniciada. Haz clic de nuevo para detener y generar el video.', 'info');
+        
+        trackEvent('clip_record_started', { start_time: clipStart });
+
+        let elapsed = 0;
+        recordTooltip.textContent = `Grabando: 0.0s`;
+        recordingTimer = setInterval(() => {
+          elapsed = video.currentTime - clipStart;
+          if (elapsed < 0) elapsed = 0;
+          recordTooltip.textContent = `Grabando: ${elapsed.toFixed(1)}s`;
+        }, 100);
+
+        updateClipUI();
+      } else {
+        // Detener grabación
+        clipEnd = video.currentTime;
+        isRecordingState = false;
+        
+        recordBtn.classList.remove('recording');
+        recordTooltip.classList.remove('show');
+        clearInterval(recordingTimer);
+
+        if (clipEnd <= clipStart) {
+          showToast('Intervalo Inválido', 'La duración del clip debe ser mayor a 0s. Dale Play antes de detener.', 'error');
+          addLog('Error de grabación: duración inválida.');
+          resetClippingState();
+          return;
+        }
+
+        const duration = clipEnd - clipStart;
+        addLog(`Fin de clip marcado a los ${clipEnd.toFixed(2)}s. Duración: ${duration.toFixed(2)}s.`);
+        updateClipUI();
+        
+        trackEvent('clip_record_stopped', { start_time: clipStart, end_time: clipEnd, duration: duration });
+
+        // Exportación automática
+        triggerAutomaticExport();
+      }
+    });
+
+    function resetClippingState() {
+      clipStart = null;
+      clipEnd = null;
+      isRecordingState = false;
+      clearInterval(recordingTimer);
+      
+      recordBtn.classList.remove('recording');
+      recordTooltip.classList.remove('show');
+      
+      document.getElementById('timeline-start-marker').classList.add('hidden');
+      document.getElementById('timeline-end-marker').classList.add('hidden');
+      document.getElementById('timeline-range-highlight').classList.add('hidden');
+      
+      updateClipUI();
+    }
+
+    resetClipBtn.addEventListener('click', () => {
+      resetClippingState();
+      addLog('Selección de clip vaciada.');
+      showToast('Selección Restablecida', 'Se han limpiado los límites del clip.', 'info');
+      trackEvent('clip_reset');
+    });
+
+    function updateClipUI() {
+      const startText = document.getElementById('clip-start-text');
+      const endText = document.getElementById('clip-end-text');
+      const startMarker = document.getElementById('timeline-start-marker');
+      const endMarker = document.getElementById('timeline-end-marker');
+      const rangeHighlight = document.getElementById('timeline-range-highlight');
+      const durationDisplay = document.getElementById('clip-duration-display');
+      
+      if (clipStart !== null) {
+        startText.textContent = formatTimeMs(clipStart);
+        startMarker.style.left = `${(clipStart / video.duration) * 100}%`;
+        startMarker.classList.remove('hidden');
+      } else {
+        startText.textContent = '--:--.--';
+        startMarker.classList.add('hidden');
+      }
+
+      if (clipEnd !== null) {
+        endText.textContent = formatTimeMs(clipEnd);
+        endMarker.style.left = `${(clipEnd / video.duration) * 100}%`;
+        endMarker.classList.remove('hidden');
+      } else {
+        endText.textContent = '--:--.--';
+        endMarker.classList.add('hidden');
+      }
+
+      if (clipStart !== null && clipEnd !== null) {
+        const diff = clipEnd - clipStart;
+        durationDisplay.textContent = `${diff.toFixed(2)}s`;
+        
+        const leftPct = (clipStart / video.duration) * 100;
+        const widthPct = ((clipEnd - clipStart) / video.duration) * 100;
+        rangeHighlight.style.left = `${leftPct}%`;
+        rangeHighlight.style.width = `${widthPct}%`;
+        rangeHighlight.classList.remove('hidden');
+      } else {
+        durationDisplay.textContent = '0.0s';
+        rangeHighlight.classList.add('hidden');
+      }
+    }
+
+    toggleSidebarBtn.addEventListener('click', () => {
+      sidebarPanel.classList.toggle('collapsed');
+    });
+
+    closeSidebarBtn.addEventListener('click', () => {
+      sidebarPanel.classList.add('collapsed');
+    });
+
+    // ==========================================================================
+    // F. TOAST DE NOTIFICACIONES PERSONALIZADAS
+    // ==========================================================================
+
+    function showToast(title, message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastTitle = document.getElementById('toast-title');
+      const toastMsg = document.getElementById('toast-message');
+      const iconWrapper = document.getElementById('toast-icon-wrapper');
+      
+      toastTitle.textContent = title;
+      toastMsg.textContent = message;
+      
+      if (type === 'error') {
+        toast.style.background = 'rgba(239, 68, 68, 0.95)';
+        toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.35), 0 0 15px rgba(239, 68, 68, 0.2)';
+        iconWrapper.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></svg>';
+      } else if (type === 'info') {
+        toast.style.background = 'rgba(99, 102, 241, 0.95)';
+        toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.35), 0 0 15px rgba(99, 102, 241, 0.2)';
+        iconWrapper.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></svg>';
+      } else {
+        toast.style.background = 'rgba(16, 185, 129, 0.95)';
+        toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.35), 0 0 15px rgba(16, 185, 129, 0.2)';
+        iconWrapper.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+      }
+      
+      toast.classList.remove('hidden');
+      toast.offsetHeight; // Force reflow
+      toast.classList.add('show');
+      
+      if (toast.dataset.timeoutId) {
+        clearTimeout(parseInt(toast.dataset.timeoutId));
+      }
+      
+      const timeoutId = setTimeout(closeToast, 4000);
+      toast.dataset.timeoutId = timeoutId;
+    }
+
+    function closeToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.remove('show');
+      
+      if (toast.dataset.timeoutId) {
+        clearTimeout(parseInt(toast.dataset.timeoutId));
+        delete toast.dataset.timeoutId;
+      }
+      
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 300);
+    }
+
+    document.getElementById('toast-close-btn').addEventListener('click', closeToast);
+
+    // ==========================================================================
+    // G. EXPORTACIÓN
+    // ==========================================================================
+
+    async function triggerAutomaticExport() {
+      if (clipStart === null || clipEnd === null) return;
+      video.pause();
+      
+      const method = exportMethodSelect.value;
+      exportOverlay.classList.remove('hidden');
+      updateExportProgress(0);
+      
+      if (method === 'ffmpeg') {
+        await executeFFmpegCut();
+      } else {
+        await executeMediaRecorderCut();
+      }
+    }
+
+    function updateExportProgress(value) {
+      const pct = Math.round(value * 100);
+      exportProgressBar.style.width = `${pct}%`;
+      exportProgressPct.textContent = `${pct}%`;
+    }
+
+    async function executeFFmpegCut() {
+      exportStatusTitle.textContent = 'Procesando con FFmpeg';
+      exportStatusDesc.textContent = 'Recortando a nivel binario sin pérdida de calidad. Por favor espera...';
+      cancelExportBtn.classList.add('hidden');
+      
+      addLog('FFmpeg: Preparando buffers en memoria...');
+      
+      try {
+        const { fetchFile } = FFmpeg;
+        const inputName = 'input.mp4';
+        const outputName = 'clip_video.mp4';
+        
+        ffmpegInstance.FS('writeFile', inputName, await fetchFile(currentFile));
+        
+        const duration = clipEnd - clipStart;
+        addLog(`FFmpeg: Ejecutando extracción de ${duration.toFixed(2)}s...`);
+        
+        await ffmpegInstance.run(
+          '-ss', clipStart.toFixed(3),
+          '-i', inputName,
+          '-t', duration.toFixed(3),
+          '-c', 'copy',
+          outputName
+        );
+        
+        updateExportProgress(1.0);
+        addLog('FFmpeg: Proceso finalizado. Leyendo archivo de salida...');
+        
+        const data = ffmpegInstance.FS('readFile', outputName);
+        
+        try {
+          ffmpegInstance.FS('unlink', inputName);
+          ffmpegInstance.FS('unlink', outputName);
+        } catch (err) {
+          console.warn('Fallo al limpiar FS virtual:', err);
+        }
+        
+        const blob = new Blob([data.buffer], { type: 'video/mp4' });
+        triggerDownload(blob, 'clip_video.mp4');
+        
+        trackEvent('clip_exported_successfully', { method: 'ffmpeg', duration: duration });
+
+        setTimeout(() => {
+          exportOverlay.classList.add('hidden');
+          showToast('¡Corte Exitoso!', 'El clip se ha generado y descargado correctamente.', 'success');
+        }, 600);
+        
+      } catch (err) {
+        console.error('Fallo FFmpeg:', err);
+        addLog(`ERROR en FFmpeg: ${err.message || err}. Cambiando a MediaRecorder fallback...`);
+        
+        trackEvent('clip_export_failed', { method: 'ffmpeg', error: err.message || err });
+        
+        exportMethodSelect.value = 'mediarecorder';
+        await executeMediaRecorderCut();
+      }
+    }
+
+    async function executeMediaRecorderCut() {
+      exportStatusTitle.textContent = 'Grabando con MediaRecorder';
+      exportStatusDesc.textContent = 'El video se grabará en tiempo real en segundo plano a velocidad 1x...';
+      cancelExportBtn.classList.remove('hidden');
+      
+      addLog('MediaRecorder: Preparando grabación de flujo...');
+      
+      const originalMuted = video.muted;
+      const originalTime = video.currentTime;
+      const originalLoop = video.loop;
+      const originalPlaybackRate = video.playbackRate;
+      
+      video.playbackRate = 1.0;
+      video.loop = false;
+      video.muted = true;
+      
+      let stream;
+      try {
+        if (video.captureStream) {
+          stream = video.captureStream();
+        } else if (video.mozCaptureStream) {
+          stream = video.mozCaptureStream();
+        } else {
+          throw new Error('Navegador no soporta captureStream().');
+        }
+      } catch (e) {
+        addLog(`MediaRecorder Error: ${e.message}`);
+        exportOverlay.classList.add('hidden');
+        showToast('Error de Grabador', 'Tu navegador no soporta capturar stream de video local.', 'error');
+        video.playbackRate = originalPlaybackRate;
+        return;
+      }
+
+      let mimeType = 'video/mp4';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=h264';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+      
+      addLog(`MediaRecorder: Utilizando codificador ${mimeType}`);
+      
+      try {
+        activeMediaRecorder = new MediaRecorder(stream, { mimeType });
+      } catch (e) {
+        addLog(`Fallo al inicializar MediaRecorder: ${e.message}`);
+        exportOverlay.classList.add('hidden');
+        video.playbackRate = originalPlaybackRate;
+        showToast('Error de Inicialización', 'No se pudo crear el grabador nativo.', 'error');
+        return;
+      }
+      
+      const chunks = [];
+      activeMediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+      
+      activeMediaRecorder.onstop = () => {
+        clearInterval(mediaRecorderInterval);
+        
+        video.playbackRate = originalPlaybackRate;
+        video.muted = originalMuted;
+        video.loop = originalLoop;
+        
+        if (chunks.length === 0) {
+          addLog('MediaRecorder: Grabación vacía. Cancelado.');
+          return;
+        }
+        
+        const blob = new Blob(chunks, { type: mimeType });
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        
+        const duration = clipEnd - clipStart;
+        addLog('MediaRecorder: Grabación finalizada. Descargando...');
+        triggerDownload(blob, `clip_video.${ext}`);
+        
+        trackEvent('clip_exported_successfully', { method: 'mediarecorder', duration: duration });
+
+        exportOverlay.classList.add('hidden');
+        showToast('¡Clip Generado!', `Se descargó exitosamente como clip_video.${ext}`, 'success');
+      };
+
+      cancelExportBtn.onclick = () => {
+        if (activeMediaRecorder && activeMediaRecorder.state !== 'inactive') {
+          activeMediaRecorder.onstop = null;
+          activeMediaRecorder.stop();
+          clearInterval(mediaRecorderInterval);
+          
+          video.pause();
+          video.playbackRate = originalPlaybackRate;
+          video.muted = originalMuted;
+          video.loop = originalLoop;
+          video.currentTime = originalTime;
+          
+          exportOverlay.classList.add('hidden');
+          addLog('MediaRecorder: Cancelado por el usuario.');
+          showToast('Proceso Cancelado', 'La exportación del clip fue cancelada.', 'info');
+          
+          trackEvent('clip_export_cancelled', { method: 'mediarecorder' });
+        }
+      };
+
+      video.onseeked = () => {
+        video.onseeked = null;
+        video.playbackRate = 1.0;
+        
+        activeMediaRecorder.start();
+        video.play();
+        
+        const recordDuration = clipEnd - clipStart;
+        addLog(`MediaRecorder: Grabando desde ${clipStart.toFixed(2)}s hasta ${clipEnd.toFixed(2)}s...`);
+        
+        mediaRecorderInterval = setInterval(() => {
+          video.playbackRate = 1.0;
+          
+          const progress = video.currentTime - clipStart;
+          const ratio = Math.max(0, Math.min(progress / recordDuration, 1));
+          updateExportProgress(ratio);
+          
+          if (video.currentTime >= clipEnd || video.paused) {
+            activeMediaRecorder.stop();
+            video.pause();
+          }
+        }, 100);
+      };
+
+      video.currentTime = clipStart;
+    }
+
+    // Fuerza la descarga
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }
+
+    // ==========================================================================
+    // H. METRICAS Y CONVERSORES
+    // ==========================================================================
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return '00:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function formatTimeMs(seconds) {
+      if (isNaN(seconds)) return '00:00.00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      const ms = Math.floor((seconds % 1) * 100);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+  </script>
+</body>
+</html>
