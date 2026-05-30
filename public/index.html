@@ -25,6 +25,7 @@
       --primary-glow: rgba(99, 102, 241, 0.25);
       --accent: #a855f7;
       --accent-glow: rgba(168, 85, 247, 0.25);
+      --warning: #ca9b14;
       --success: #10b981;
       --success-glow: rgba(16, 185, 129, 0.2);
       --danger: #ef4444;
@@ -1165,6 +1166,130 @@
         display: none; /* Ocultamos el nombre de archivo en pantallas muy pequeñas para evitar colapsos */
       }
     }
+
+    /* ==========================================================================
+       10. ESTILOS ZONAREPLAY E INTEGRACIÓN ONLINE
+       ========================================================================== */
+    .tabs-header {
+      display: flex;
+      width: 100%;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 24px;
+      gap: 4px;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-base);
+      border-bottom: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: rgba(99, 102, 241, 0.04);
+    }
+    
+    .tab-content {
+      width: 100%;
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .dropzone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .terminal-box {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 14px;
+      width: 100%;
+      text-align: left;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .terminal-code {
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      color: #34d399;
+      display: block;
+      word-break: break-all;
+      white-space: pre-wrap;
+      background: transparent;
+      padding: 0;
+      line-height: 1.5;
+    }
+
+    .os-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition-base);
+      flex: 1;
+      text-align: center;
+    }
+    .os-btn:hover {
+      background: rgba(255,255,255,0.02);
+      color: var(--text-main);
+      border-color: rgba(255,255,255,0.1);
+    }
+    .os-btn.active {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: var(--primary);
+      color: var(--text-main);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(99, 102, 241, 0.15);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -1208,20 +1333,108 @@
       
       <!-- 1. Cargador de Archivo (Al inicio) -->
       <div id="upload-container" class="upload-card">
-        <div class="upload-icon-container">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
+        
+        <!-- Pestañas -->
+        <div class="tabs-header">
+          <button class="tab-btn active" id="tab-local-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px; height:16px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Archivo Local
+          </button>
+          <button class="tab-btn" id="tab-online-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px; height:16px;">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Video ZonaReplay
+          </button>
         </div>
-        <div class="upload-text">
-          <h2>Carga tu video para recortar</h2>
-          <p>Arrastra tu archivo .mp4 aquí o búscalo en tu PC</p>
+
+        <!-- Contenido Tab Local -->
+        <div class="tab-content active" id="tab-local-content">
+          <div class="dropzone" id="dropzone">
+            <div class="upload-icon-container">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div class="upload-text">
+              <h2>Carga tu video para recortar</h2>
+              <p>Arrastra tu archivo .mp4 aquí o búscalo en tu PC</p>
+            </div>
+            <button class="btn btn-primary" id="open-file-btn" type="button">
+              Abrir Archivo
+            </button>
+          </div>
         </div>
-        <button class="btn btn-primary">
-          Abrir Archivo
-        </button>
+
+        <!-- Contenido Tab Online (ZonaReplay) -->
+        <div class="tab-content" id="tab-online-content">
+          <div class="url-input-container" id="url-input-container" style="width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: left;">
+            <p style="color: var(--text-muted); font-size: 13px; text-align: center; margin-bottom: 8px;">
+              Ingresa el link del video de ZonaReplay para obtener los comandos de descarga.
+            </p>
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <input type="text" id="zonareplay-url-input" placeholder="https://www.zonareplay.com/video/39710" style="flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; color: var(--text-main); font-size: 14px; outline: none; transition: var(--transition-base);" />
+              <button id="load-zonareplay-btn" class="btn btn-primary" style="padding: 0 20px;" type="button">Cargar</button>
+            </div>
+            <div id="url-error" class="hidden" style="color: var(--danger); font-size: 12px; text-align: center; font-weight: 600;"></div>
+          </div>
+
+          <!-- Loader de API -->
+          <div id="zonareplay-loading" class="hidden" style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 20px 0;">
+            <div class="spinner"></div>
+            <span style="font-size: 13px; color: var(--text-muted);">Obteniendo información de ZonaReplay...</span>
+          </div>
+
+          <!-- Caja de comando y detalles -->
+          <div id="zonareplay-details" class="hidden" style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+            <div class="clip-meta-box" style="background: rgba(255, 255, 255, 0.02); text-align: left; padding: 12px;">
+              <div class="meta-row" style="margin-bottom: 2px;">
+                <span class="meta-lbl">Partido:</span>
+                <span class="meta-val" id="zr-meta-field" style="font-weight: 700; color: var(--text-main);">--</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-lbl">Fecha/Hora:</span>
+                <span class="meta-val" id="zr-meta-datetime">--</span>
+              </div>
+            </div>
+
+            <!-- Selector de Sistema Operativo -->
+            <div style="display: flex; gap: 8px; margin-top: 4px; width: 100%;">
+              <button id="cmd-os-linux" class="os-btn active" type="button">Linux / macOS (Bash)</button>
+              <button id="cmd-os-windows" class="os-btn" type="button">Windows (cmd/PS)</button>
+            </div>
+
+            <!-- Terminal para copiar comando -->
+            <div class="terminal-box">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">Comando de Descarga (FFmpeg)</span>
+                <button id="copy-cmd-btn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span id="copy-btn-text">Copiar</span>
+                </button>
+              </div>
+              <code id="ffmpeg-command-text" class="terminal-code"></code>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display: flex; gap: 12px; width: 100%; margin-top: 8px;">
+              <button id="reset-url-btn" class="btn btn-secondary" style="flex: 1;" type="button">
+                Cargar Otro Enlace
+              </button>
+            </div>
+          </div>
+        </div>
+
         <input type="file" id="file-input" accept="video/mp4">
       </div>
 
@@ -1230,7 +1443,7 @@
         
         <!-- Viewport del video -->
         <div class="video-viewport" id="video-viewport">
-          <video id="main-video" playsinline></video>
+          <video id="main-video" playsinline crossorigin="anonymous"></video>
           
           <!-- Indicador de Zoom y Reset Flotante -->
           <div id="zoom-indicator" class="zoom-badge hidden">1.0x</div>
@@ -1520,6 +1733,28 @@
     const exportStatusDesc = document.getElementById('export-status-desc');
     const cancelExportBtn = document.getElementById('cancel-export-btn');
 
+    // Referencias del DOM - ZonaReplay
+    const tabLocalBtn = document.getElementById('tab-local-btn');
+    const tabOnlineBtn = document.getElementById('tab-online-btn');
+    const tabLocalContent = document.getElementById('tab-local-content');
+    const tabOnlineContent = document.getElementById('tab-online-content');
+    const dropzone = document.getElementById('dropzone');
+    
+    const zrUrlInput = document.getElementById('zonareplay-url-input');
+    const loadZrBtn = document.getElementById('load-zonareplay-btn');
+    const zrLoading = document.getElementById('zonareplay-loading');
+    const zrDetails = document.getElementById('zonareplay-details');
+    const zrMetaField = document.getElementById('zr-meta-field');
+    const zrMetaDatetime = document.getElementById('zr-meta-datetime');
+    const ffmpegCmdText = document.getElementById('ffmpeg-command-text');
+    const copyCmdBtn = document.getElementById('copy-cmd-btn');
+    const copyBtnText = document.getElementById('copy-btn-text');
+    const resetUrlBtn = document.getElementById('reset-url-btn');
+    const urlError = document.getElementById('url-error');
+
+    const cmdOsLinuxBtn = document.getElementById('cmd-os-linux');
+    const cmdOsWindowsBtn = document.getElementById('cmd-os-windows');
+
     // Estado general
     let currentFile = null;
     let clipStart = null;
@@ -1533,6 +1768,13 @@
     let activeMediaRecorder = null;
     let mediaRecorderInterval = null;
     let controlsTimeout = null;
+
+    // Estado ZonaReplay
+    let isOnlineVideo = false;
+    let onlineVideoName = "video_online.mp4";
+    let cmdLinux = "";
+    let cmdWindows = "";
+    let activeOS = "linux";
 
     // SVG Icons
     const playIconSVG = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
@@ -1876,21 +2118,51 @@
     // B. MANEJO DE ARCHIVOS DE VIDEO
     // ==========================================================================
 
-    uploaderCard.addEventListener('dragover', (e) => { e.preventDefault(); uploaderCard.style.borderColor = 'var(--primary)'; });
-    uploaderCard.addEventListener('dragleave', () => { uploaderCard.style.borderColor = ''; });
-    uploaderCard.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploaderCard.style.borderColor = '';
-      if (e.dataTransfer.files.length > 0) {
-        loadVideo(e.dataTransfer.files[0]);
-      }
-    });
+    // --- Lógica de Pestañas (Tabs) en Cargador ---
+    if (tabLocalBtn && tabOnlineBtn) {
+      tabLocalBtn.addEventListener('click', () => {
+        tabLocalBtn.classList.add('active');
+        tabOnlineBtn.classList.remove('active');
+        tabLocalContent.classList.add('active');
+        tabOnlineContent.classList.remove('active');
+        urlError.classList.add('hidden');
+      });
 
-    uploaderCard.addEventListener('click', (e) => {
-      if (e.target !== fileInput) {
-        fileInput.click();
-      }
-    });
+      tabOnlineBtn.addEventListener('click', () => {
+        tabOnlineBtn.classList.add('active');
+        tabLocalBtn.classList.remove('active');
+        tabOnlineContent.classList.add('active');
+        tabLocalContent.classList.remove('active');
+        urlError.classList.add('hidden');
+      });
+    }
+
+    // --- Drag and drop y Click en Dropzone Local ---
+    if (dropzone) {
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--primary)';
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.style.borderColor = '';
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = '';
+        if (e.dataTransfer.files.length > 0) {
+          loadVideo(e.dataTransfer.files[0]);
+        }
+      });
+
+      dropzone.addEventListener('click', (e) => {
+        // Hacemos click en el input oculto nativo solo si el click no viene del mismo input
+        if (e.target !== fileInput) {
+          fileInput.click();
+        }
+      });
+    }
 
     fileInput.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
@@ -1905,7 +2177,8 @@
       }
       
       currentFile = file;
-      addLog(`Cargando video: ${file.name} (${formatBytes(file.size)})`);
+      isOnlineVideo = false;
+      addLog(`Cargando video local: ${file.name} (${formatBytes(file.size)})`);
       
       // Tracking
       trackEvent('video_loaded', { file_size: file.size, file_name: file.name });
@@ -1913,6 +2186,23 @@
       uploaderCard.classList.add('hidden');
       playerWrapper.classList.remove('hidden');
       
+      // Habilitar opción de FFmpeg.wasm si está cargado
+      const ffmpegOpt = exportMethodSelect.querySelector('option[value="ffmpeg"]');
+      if (ffmpegLoaded) {
+        if (ffmpegOpt) {
+          ffmpegOpt.disabled = false;
+          ffmpegOpt.textContent = 'FFmpeg.wasm (Ultra-rápido, sin pérdida)';
+        }
+        exportMethodSelect.value = 'ffmpeg';
+      } else {
+        if (ffmpegOpt) {
+          ffmpegOpt.disabled = true;
+          ffmpegOpt.textContent += ' (No disponible)';
+        }
+        exportMethodSelect.value = 'mediarecorder';
+      }
+      
+      video.removeAttribute('src');
       video.src = URL.createObjectURL(file);
       document.getElementById('file-name-display').textContent = file.name;
       document.getElementById('file-name-display').setAttribute('title', file.name);
@@ -1921,16 +2211,221 @@
       resetZoom(false);
     }
 
+    // --- Lógica de Carga y Resolución de ZonaReplay ---
+    let zrPlaylistUrl = "";
+    let zrMatchName = "";
+
+    if (loadZrBtn) {
+      loadZrBtn.addEventListener('click', fetchZonaReplayVideo);
+    }
+
+    if (zrUrlInput) {
+      zrUrlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          fetchZonaReplayVideo();
+        }
+      });
+    }
+
+    // --- Cadena de Proxies Robustecida para evitar bloqueos de CORS ---
+    async function fetchWithProxy(targetUrl) {
+      const proxies = [
+        // 1. AllOrigins Raw
+        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        // 2. Corsproxy.io (Excelente velocidad en navegador, bloquea peticiones de servidor)
+        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        // 3. AllOrigins Wrapped (JSON Wrapper que asegura CORS incluso ante errores del origen)
+        (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+      ];
+
+      let lastError = null;
+
+      for (let i = 0; i < proxies.length; i++) {
+        const proxyUrl = proxies[i](targetUrl);
+        try {
+          addLog(`Bypass CORS: Intentando obtener datos con proxy #${i + 1}...`);
+          const response = await fetch(proxyUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          if (proxyUrl.includes('allorigins.win/get')) {
+            const wrapperData = await response.json();
+            if (wrapperData.contents) {
+              return JSON.parse(wrapperData.contents);
+            } else {
+              throw new Error("Respuesta del proxy vacía.");
+            }
+          } else {
+            return await response.json();
+          }
+        } catch (err) {
+          console.warn(`Proxy #${i + 1} falló:`, err);
+          addLog(`Proxy #${i + 1} falló: ${err.message || err}`);
+          lastError = err;
+        }
+      }
+
+      throw lastError || new Error("Todos los proxies de la cadena fallaron.");
+    }
+
+    async function fetchZonaReplayVideo() {
+      const urlText = zrUrlInput.value.trim();
+      urlError.classList.add('hidden');
+      
+      if (!urlText) {
+        showUrlError("Por favor ingresa un enlace.");
+        return;
+      }
+
+      // Validar expresión regular para extraer ID del video
+      let videoId = "";
+      if (/^\d+$/.test(urlText)) {
+        videoId = urlText;
+      } else {
+        const match = urlText.match(/(?:zonareplay\.com\/video\/)(\d+)/);
+        if (!match) {
+          showUrlError("El enlace no parece ser un video válido de ZonaReplay (ej: https://www.zonareplay.com/video/39710) ni un ID numérico.");
+          return;
+        }
+        videoId = match[1];
+      }
+
+      addLog(`Consultando API de ZonaReplay para video ID: ${videoId}`);
+      
+      // Mostrar loading
+      document.getElementById('url-input-container').classList.add('hidden');
+      zrLoading.classList.remove('hidden');
+      zrDetails.classList.add('hidden');
+
+      try {
+        const apiUrl = `https://www.zonareplay.com/api/videos/${videoId}`;
+        // Obtener datos del video usando la cadena de proxies
+        const data = await fetchWithProxy(apiUrl);
+        
+        if (!data.file_url) {
+          throw new Error("No se encontró la URL del video en la respuesta.");
+        }
+
+        zrPlaylistUrl = data.file_url;
+        
+        // Formatear detalles
+        const fieldName = data.field_id ? data.field_id.replace(/-/g, ' ') : 'Partido ZonaReplay';
+        let matchDateStr = "";
+        if (data.match_date) {
+          const dateObj = new Date(data.match_date);
+          matchDateStr = dateObj.toLocaleDateString('es-AR');
+        }
+        const matchTimeStr = data.match_time || "";
+        
+        zrMatchName = `${fieldName.replace(/\s+/g, '_')}_${matchDateStr.replace(/\//g, '-')}`;
+        onlineVideoName = `${zrMatchName}.mp4`;
+
+        // Llenar campos meta
+        zrMetaField.textContent = fieldName;
+        zrMetaDatetime.textContent = `${matchDateStr} ${matchTimeStr}`.trim();
+        
+        // Generar comandos FFmpeg para Linux/macOS y Windows
+        cmdLinux = `ffmpeg -i '${zrPlaylistUrl}' -c copy '${onlineVideoName}'`;
+        cmdWindows = `ffmpeg -i "${zrPlaylistUrl}" -c copy "${onlineVideoName}"`;
+
+        // Mostrar el comando correspondiente al OS seleccionado actualmente
+        ffmpegCmdText.textContent = activeOS === "linux" ? cmdLinux : cmdWindows;
+
+        // Mostrar detalles
+        zrLoading.classList.add('hidden');
+        zrDetails.classList.remove('hidden');
+        
+        addLog(`ZonaReplay: Información obtenida con éxito. Cancha: ${fieldName}. Playlist M3U8: ${zrPlaylistUrl}`);
+        showToast('Video Encontrado', 'Se cargó la información del partido correctamente.', 'success');
+        
+      } catch (err) {
+        console.error(err);
+        addLog(`Error al consultar ZonaReplay: ${err.message}`);
+        showUrlError(`Error al consultar información: ${err.message}. Intenta de nuevo o verifica tu conexión.`);
+        
+        // Volver a mostrar input
+        zrLoading.classList.add('hidden');
+        document.getElementById('url-input-container').classList.remove('hidden');
+      }
+    }
+
+    function showUrlError(msg) {
+      urlError.textContent = msg;
+      urlError.classList.remove('hidden');
+    }
+
+    if (resetUrlBtn) {
+      resetUrlBtn.addEventListener('click', () => {
+        zrUrlInput.value = "";
+        zrDetails.classList.add('hidden');
+        document.getElementById('url-input-container').classList.remove('hidden');
+      });
+    }
+
+    if (copyCmdBtn) {
+      copyCmdBtn.addEventListener('click', async () => {
+        const cmd = ffmpegCmdText.textContent;
+        if (!cmd) return;
+        
+        try {
+          await navigator.clipboard.writeText(cmd);
+          copyBtnText.textContent = "¡Copiado!";
+          copyCmdBtn.style.background = 'var(--success)';
+          
+          setTimeout(() => {
+            copyBtnText.textContent = "Copiar";
+            copyCmdBtn.style.background = '';
+          }, 2000);
+          
+          addLog("Comando FFmpeg copiado al portapapeles.");
+          showToast('Copiado', 'Comando copiado al portapapeles. Pégalo en tu terminal.', 'success');
+        } catch (err) {
+          addLog(`Error al copiar comando: ${err}`);
+          showToast('Error al copiar', 'No se pudo copiar el comando automáticamente.', 'error');
+        }
+      });
+    }
+
+    // Listeners para cambiar OS en la UI
+    if (cmdOsLinuxBtn && cmdOsWindowsBtn) {
+      cmdOsLinuxBtn.addEventListener('click', () => {
+        activeOS = "linux";
+        cmdOsLinuxBtn.classList.add('active');
+        cmdOsWindowsBtn.classList.remove('active');
+        if (cmdLinux) {
+          ffmpegCmdText.textContent = cmdLinux;
+        }
+      });
+
+      cmdOsWindowsBtn.addEventListener('click', () => {
+        activeOS = "windows";
+        cmdOsWindowsBtn.classList.add('active');
+        cmdOsLinuxBtn.classList.remove('active');
+        if (cmdWindows) {
+          ffmpegCmdText.textContent = cmdWindows;
+        }
+      });
+    }
+
     changeVideoBtn.addEventListener('click', () => {
       if (confirm('¿Cerrar el video actual y cargar otro?')) {
         video.pause();
-        video.src = '';
+        video.removeAttribute('src');
+        video.load();
         currentFile = null;
+        isOnlineVideo = false;
         resetClippingState();
         resetZoom(false);
         playerWrapper.classList.add('hidden');
         uploaderCard.classList.remove('hidden');
         fileInput.value = '';
+        
+        // Reset del input y estado de detalles de ZonaReplay
+        zrUrlInput.value = "";
+        zrDetails.classList.add('hidden');
+        document.getElementById('url-input-container').classList.remove('hidden');
+        
         addLog('Video cerrado. Pantalla de carga activa.');
       }
     });
@@ -2306,7 +2801,12 @@
       if (clipStart === null || clipEnd === null) return;
       video.pause();
       
-      const method = exportMethodSelect.value;
+      let method = exportMethodSelect.value;
+      if (isOnlineVideo) {
+        method = 'mediarecorder';
+        addLog('Modo de video online: forzando grabación en tiempo real con MediaRecorder.');
+      }
+      
       exportOverlay.classList.remove('hidden');
       updateExportProgress(0);
       
