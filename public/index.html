@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fulvito Video Clipper - Editor de Video Local</title>
+  <link rel="icon" type="image/ico" href="favicon.ico">
   
   <!-- Tipografía moderna desde Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -610,6 +611,96 @@
       display: block;
     }
 
+    /* Contenedor unificado de volumen con expansión hover */
+    .volume-control-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 0;
+      transition: var(--transition-base);
+      overflow: hidden;
+      max-width: 36px;
+    }
+
+    .volume-control-wrapper:hover,
+    .volume-control-wrapper:focus-within {
+      max-width: 120px;
+      padding-right: 8px;
+      gap: 8px;
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .volume-control-wrapper .control-btn {
+      background: transparent;
+      border: none;
+      margin: 0;
+    }
+
+    .volume-control-wrapper .control-btn:hover {
+      background: transparent;
+      transform: none;
+    }
+
+    .volume-slider {
+      --volume-pct: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 0;
+      opacity: 0;
+      height: 5px;
+      border-radius: 3px;
+      background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--volume-pct), rgba(255, 255, 255, 0.15) var(--volume-pct), rgba(255, 255, 255, 0.15) 100%);
+      outline: none;
+      cursor: pointer;
+      pointer-events: none;
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    }
+
+    .volume-control-wrapper:hover .volume-slider,
+    .volume-control-wrapper:focus-within .volume-slider {
+      width: 65px;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      margin-top: -3.5px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--primary-glow);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .volume-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: var(--primary);
+    }
+
+    .volume-slider::-moz-range-thumb {
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--primary-glow);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .volume-slider::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      background: var(--primary);
+    }
+
     .play-btn-large {
       width: 38px;
       height: 38px;
@@ -1128,7 +1219,7 @@
           <h2>Carga tu video para recortar</h2>
           <p>Arrastra tu archivo .mp4 aquí o búscalo en tu PC</p>
         </div>
-        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+        <button class="btn btn-primary">
           Abrir Archivo
         </button>
         <input type="file" id="file-input" accept="video/mp4">
@@ -1169,9 +1260,10 @@
             <!-- Izquierda: Seek, Play y Volumen -->
             <div class="controls-left">
               <button class="control-btn" id="seek-back-btn" title="Retroceder 10s">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                  <text x="7" y="15" font-size="7" font-weight="bold" fill="currentColor" stroke="none">10</text>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <path d="M9 10l2-2v8"></path>
+                  <rect x="14" y="8" width="6" height="8" rx="2" ry="2"></rect>
                 </svg>
               </button>
               
@@ -1182,18 +1274,23 @@
               </button>
               
               <button class="control-btn" id="seek-forward-btn" title="Avanzar 10s">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 0 .57-8.38l-5.67-5.67"></path>
-                  <text x="7" y="15" font-size="7" font-weight="bold" fill="currentColor" stroke="none">10</text>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="4" y1="10" x2="4" y2="14"></line>
+                  <path d="M9 10l2-2v8"></path>
+                  <rect x="14" y="8" width="6" height="8" rx="2" ry="2"></rect>
                 </svg>
               </button>
 
-              <button class="control-btn" id="mute-btn" title="Silenciar">
-                <svg id="mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-              </button>
+              <div class="volume-control-wrapper">
+                <button class="control-btn" id="mute-btn" title="Silenciar">
+                  <svg id="mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  </svg>
+                </button>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" class="volume-slider" title="Volumen">
+              </div>
             </div>
 
             <!-- Centro: Botón Único de Grabación -->
@@ -1401,6 +1498,7 @@
     const seekForwardBtn = document.getElementById('seek-forward-btn');
     const speedBtn = document.getElementById('speed-btn');
     const muteBtn = document.getElementById('mute-btn');
+    const volumeSlider = document.getElementById('volume-slider');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
     const changeVideoBtn = document.getElementById('change-video-btn');
     
@@ -1428,6 +1526,7 @@
     let clipEnd = null;
     let isRecordingState = false;
     let recordingTimer = null;
+    let previousVolume = 1.0;
     
     let ffmpegInstance = null;
     let ffmpegLoaded = false;
@@ -1736,9 +1835,26 @@
       });
     }
 
+    // Helper para actualizar el background del slider de volumen
+    function updateVolumeSliderBackground() {
+      if (volumeSlider) {
+        const pct = volumeSlider.value * 100;
+        volumeSlider.style.setProperty('--volume-pct', `${pct}%`);
+      }
+    }
+
     window.addEventListener('load', () => {
       addLog('Sistema inicializado.');
       setupZoomAndPan();
+      
+      // Inicializar volumen y slider
+      if (video) {
+        video.volume = 1.0;
+        if (volumeSlider) {
+          volumeSlider.value = video.volume;
+          updateVolumeSliderBackground();
+        }
+      }
       
       if (typeof FFmpeg === 'undefined') {
         addLog('Inyectando script de respaldo FFmpeg.wasm...');
@@ -1767,6 +1883,12 @@
       uploaderCard.style.borderColor = '';
       if (e.dataTransfer.files.length > 0) {
         loadVideo(e.dataTransfer.files[0]);
+      }
+    });
+
+    uploaderCard.addEventListener('click', (e) => {
+      if (e.target !== fileInput) {
+        fileInput.click();
       }
     });
 
@@ -1857,10 +1979,30 @@
       if (video.muted) {
         muteBtn.innerHTML = unMuteIconSVG;
         muteBtn.setAttribute('title', 'Activar Sonido');
+        volumeSlider.value = 0;
       } else {
         muteBtn.innerHTML = muteIconSVG;
         muteBtn.setAttribute('title', 'Silenciar');
+        if (previousVolume === 0) previousVolume = 1.0;
+        video.volume = previousVolume;
+        volumeSlider.value = previousVolume;
       }
+      updateVolumeSliderBackground();
+    });
+
+    volumeSlider.addEventListener('input', () => {
+      video.volume = parseFloat(volumeSlider.value);
+      if (video.volume === 0) {
+        video.muted = true;
+        muteBtn.innerHTML = unMuteIconSVG;
+        muteBtn.setAttribute('title', 'Activar Sonido');
+      } else {
+        video.muted = false;
+        muteBtn.innerHTML = muteIconSVG;
+        muteBtn.setAttribute('title', 'Silenciar');
+        previousVolume = video.volume;
+      }
+      updateVolumeSliderBackground();
     });
 
     // --- Lógica de Pantalla Completa en Ventana (Web Full-Viewport) ---
