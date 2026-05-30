@@ -305,6 +305,64 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+    /* Estilos de Zoom y Pan en el Viewport */
+    .zoom-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(15, 18, 30, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: 'Fira Code', monospace;
+      z-index: 100;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .zoom-reset-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(99, 102, 241, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: pointer;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px var(--primary-glow);
+      transition: var(--transition-base);
+    }
+
+    .zoom-reset-btn:hover {
+      background: var(--primary-hover);
+      transform: scale(1.03);
+    }
+
+    .zoom-reset-btn svg {
+      width: 14px;
+      height: 14px;
+      display: block;
     }
 
     /* Wrapper de reproducción normal */
@@ -1080,8 +1138,17 @@
       <div class="player-wrapper hidden" id="player-wrapper">
         
         <!-- Viewport del video -->
-        <div class="video-viewport">
+        <div class="video-viewport" id="video-viewport">
           <video id="main-video" playsinline></video>
+          
+          <!-- Indicador de Zoom y Reset Flotante -->
+          <div id="zoom-indicator" class="zoom-badge hidden">1.0x</div>
+          <button id="zoom-reset-btn" class="zoom-reset-btn hidden" title="Restablecer vista (Doble click)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
+            </svg>
+            Restablecer Vista
+          </button>
         </div>
 
         <!-- Panel de Controles Unificado -->
@@ -1257,6 +1324,27 @@
         </div>
       </div>
 
+      <!-- Control de Video (Zoom) -->
+      <div>
+        <div class="panel-section-title">Controles de Vista (Zoom)</div>
+        <div class="clip-meta-box" style="font-size: 11px; gap: 6px; line-height: 1.45; background: rgba(255, 255, 255, 0.015);">
+          <p style="color: var(--text-muted); margin-bottom: 2px;">Puedes acercar la imagen en el reproductor para ver mejor los detalles:</p>
+          <ul style="padding-left: 14px; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px;">
+            <li><strong style="color: var(--text-main);">Zoom:</strong> Gira la rueda del ratón (scroll) sobre el reproductor.</li>
+            <li><strong style="color: var(--text-main);">Arrastrar:</strong> Haz clic y mueve el ratón para desplazar la cámara ampliada.</li>
+            <li><strong style="color: var(--text-main);">Restablecer:</strong> Haz doble clic sobre el video o presiona el botón flotante.</li>
+            <li><strong style="color: var(--text-main);">Dispositivos móviles:</strong> Pellizca con dos dedos para hacer zoom y arrastra con un dedo.</li>
+          </ul>
+          <div style="color: var(--success); font-weight: 600; font-size: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px; margin-top: 4px; display: flex; gap: 4px; align-items: flex-start;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px; height:12px; flex-shrink:0; margin-top:1px;">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>El zoom es solo visual; los clips descargados conservarán la resolución y encuadre 1x original sin pérdidas.</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Consola de Historial -->
       <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
         <div class="panel-section-title">Registro de Procesamiento</div>
@@ -1399,6 +1487,11 @@
       updateFFmpegStatus('loading', 'Cargando Motor...');
       addLog('Inicializando motor local de FFmpeg.wasm...');
       
+      // Creamos una promesa de timeout de 6 segundos para evitar colapsos eternos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Tiempo de espera agotado (Timeout)')), 6000)
+      );
+      
       try {
         if (typeof FFmpeg === 'undefined') {
           throw new Error('Librería no definida en el contexto global.');
@@ -1424,7 +1517,8 @@
           }
         });
 
-        await ffmpegInstance.load();
+        // Competimos la carga del motor local contra el timeout
+        await Promise.race([ffmpegInstance.load(), timeoutPromise]);
         ffmpegLoaded = true;
         updateFFmpegStatus('ready', 'FFmpeg Listo (Local)');
         addLog('FFmpeg.wasm cargado LOCALMENTE. Cortes sin pérdida de calidad disponibles.');
@@ -1453,7 +1547,12 @@
             }
           });
 
-          await ffmpegInstance.load();
+          // Ponemos un timeout de 10 segundos para la carga del CDN
+          const cdnTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout de CDN excedido')), 10000)
+          );
+
+          await Promise.race([ffmpegInstance.load(), cdnTimeoutPromise]);
           ffmpegLoaded = true;
           updateFFmpegStatus('ready', 'FFmpeg Listo (CDN)');
           addLog('FFmpeg.wasm cargado desde CDN de unpkg.');
@@ -1473,8 +1572,173 @@
       }
     }
 
+    // --- Lógica de Zoom y Pan Interactivos ---
+    let zoomScale = 1.0;
+    let zoomX = 0;
+    let zoomY = 0;
+    let isZoomDragging = false;
+    let zoomStartX = 0;
+    let zoomStartY = 0;
+    let touchStartDist = 0;
+    let touchStartScale = 1.0;
+    let isMultiTouch = false;
+
+    function updateVideoTransform(transition = false) {
+      const viewport = document.getElementById('video-viewport');
+      const zoomIndicator = document.getElementById('zoom-indicator');
+      const zoomResetBtn = document.getElementById('zoom-reset-btn');
+      
+      if (!viewport || !zoomIndicator || !zoomResetBtn) return;
+      
+      if (transition) {
+        video.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+      } else {
+        video.style.transition = 'none';
+      }
+      
+      video.style.transform = `translate(${zoomX}px, ${zoomY}px) scale(${zoomScale})`;
+      
+      if (zoomScale > 1.0) {
+        viewport.style.cursor = isZoomDragging ? 'grabbing' : 'grab';
+        zoomIndicator.textContent = `${zoomScale.toFixed(1)}x`;
+        zoomIndicator.classList.remove('hidden');
+        zoomResetBtn.classList.remove('hidden');
+      } else {
+        viewport.style.cursor = 'default';
+        zoomIndicator.classList.add('hidden');
+        zoomResetBtn.classList.add('hidden');
+      }
+    }
+
+    function resetZoom(transition = true) {
+      zoomScale = 1.0;
+      zoomX = 0;
+      zoomY = 0;
+      updateVideoTransform(transition);
+    }
+
+    // Inicializar listeners de Zoom y Pan
+    function setupZoomAndPan() {
+      const viewport = document.getElementById('video-viewport');
+      const zoomResetBtn = document.getElementById('zoom-reset-btn');
+      if (!viewport) return;
+
+      // Zoom con rueda del ratón
+      viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = 0.15;
+        if (e.deltaY < 0) {
+          zoomScale = Math.min(zoomScale + zoomFactor, 5.0);
+        } else {
+          zoomScale = Math.max(zoomScale - zoomFactor, 1.0);
+        }
+        
+        if (zoomScale === 1.0) {
+          zoomX = 0;
+          zoomY = 0;
+        }
+        updateVideoTransform(false);
+      }, { passive: false });
+
+      // Inicio de arrastre (Mouse)
+      viewport.addEventListener('mousedown', (e) => {
+        if (zoomScale <= 1.0) return;
+        isZoomDragging = true;
+        zoomStartX = e.clientX - zoomX;
+        zoomStartY = e.clientY - zoomY;
+        viewport.style.cursor = 'grabbing';
+      });
+
+      // Arrastre en movimiento (Mouse)
+      window.addEventListener('mousemove', (e) => {
+        if (!isZoomDragging) return;
+        zoomX = e.clientX - zoomStartX;
+        zoomY = e.clientY - zoomStartY;
+        updateVideoTransform(false);
+      });
+
+      // Fin de arrastre (Mouse)
+      window.addEventListener('mouseup', () => {
+        if (isZoomDragging) {
+          isZoomDragging = false;
+          viewport.style.cursor = zoomScale > 1.0 ? 'grab' : 'default';
+        }
+      });
+
+      // Doble click para restaurar / zoom rápido a 2x
+      viewport.addEventListener('dblclick', () => {
+        if (zoomScale > 1.0) {
+          resetZoom(true);
+        } else {
+          zoomScale = 2.0;
+          zoomX = 0;
+          zoomY = 0;
+          updateVideoTransform(true);
+        }
+      });
+
+      // Inicio de toque (Mobile)
+      viewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1 && zoomScale > 1.0) {
+          isZoomDragging = true;
+          isMultiTouch = false;
+          zoomStartX = e.touches[0].clientX - zoomX;
+          zoomStartY = e.touches[0].clientY - zoomY;
+        } else if (e.touches.length === 2) {
+          isZoomDragging = false;
+          isMultiTouch = true;
+          touchStartDist = getTouchDist(e);
+          touchStartScale = zoomScale;
+        }
+      }, { passive: false });
+
+      // Movimiento táctil (Mobile)
+      viewport.addEventListener('touchmove', (e) => {
+        if (isZoomDragging && e.touches.length === 1) {
+          e.preventDefault();
+          zoomX = e.touches[0].clientX - zoomStartX;
+          zoomY = e.touches[0].clientY - zoomStartY;
+          updateVideoTransform(false);
+        } else if (isMultiTouch && e.touches.length === 2) {
+          e.preventDefault();
+          const dist = getTouchDist(e);
+          if (touchStartDist > 0) {
+            const factor = dist / touchStartDist;
+            zoomScale = Math.min(Math.max(touchStartScale * factor, 1.0), 5.0);
+            if (zoomScale === 1.0) {
+              zoomX = 0;
+              zoomY = 0;
+            }
+            updateVideoTransform(false);
+          }
+        }
+      }, { passive: false });
+
+      // Fin de toque (Mobile)
+      viewport.addEventListener('touchend', () => {
+        isZoomDragging = false;
+        isMultiTouch = false;
+        touchStartDist = 0;
+      });
+
+      // Calcular distancia entre dos toques
+      function getTouchDist(e) {
+        if (e.touches.length < 2) return 0;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      // Botón de restablecer
+      zoomResetBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetZoom(true);
+      });
+    }
+
     window.addEventListener('load', () => {
       addLog('Sistema inicializado.');
+      setupZoomAndPan();
       
       if (typeof FFmpeg === 'undefined') {
         addLog('Inyectando script de respaldo FFmpeg.wasm...');
@@ -1532,6 +1796,7 @@
       document.getElementById('file-name-display').setAttribute('title', file.name);
       
       resetClippingState();
+      resetZoom(false);
     }
 
     changeVideoBtn.addEventListener('click', () => {
@@ -1540,6 +1805,7 @@
         video.src = '';
         currentFile = null;
         resetClippingState();
+        resetZoom(false);
         playerWrapper.classList.add('hidden');
         uploaderCard.classList.remove('hidden');
         fileInput.value = '';
