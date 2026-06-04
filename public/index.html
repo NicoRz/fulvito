@@ -2229,27 +2229,77 @@
 
     // --- Cadena de Proxies Robustecida para evitar bloqueos de CORS ---
     async function fetchWithProxy(targetUrl) {
+      // Helper para hacer fetch con timeout usando AbortController
+      async function fetchWithTimeout(url, options = {}, timeoutMs = 6000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+          clearTimeout(id);
+          return response;
+        } catch (err) {
+          clearTimeout(id);
+          if (err.name === 'AbortError') {
+            throw new Error(`Tiempo de espera agotado (${timeoutMs / 1000}s)`);
+          }
+          throw err;
+        }
+      }
+
+      // 1. Intentar petición directa por si el servidor soporta CORS o el usuario tiene un bypass/extensión
+      try {
+        addLog("Intentando obtener datos directamente sin proxy...");
+        const response = await fetchWithTimeout(targetUrl, {}, 4000);
+        if (response.ok) {
+          addLog("ZonaReplay: Datos obtenidos directamente con éxito.");
+          return await response.json();
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (directErr) {
+        console.warn("Petición directa falló:", directErr);
+        addLog(`Petición directa falló (CORS o timeout): ${directErr.message || directErr}`);
+      }
+
       const proxies = [
         // 1. AllOrigins Raw
-        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        {
+          name: "AllOrigins Raw",
+          urlFn: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+        },
         // 2. Corsproxy.io (Excelente velocidad en navegador, bloquea peticiones de servidor)
-        (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        // 3. AllOrigins Wrapped (JSON Wrapper que asegura CORS incluso ante errores del origen)
-        (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+        {
+          name: "Corsproxy.io",
+          urlFn: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
+        },
+        // 3. Codetabs Proxy (Excelente alternativa libre de CORS)
+        {
+          name: "Codetabs Proxy",
+          urlFn: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+        },
+        // 4. AllOrigins Wrapped (JSON Wrapper que asegura CORS incluso ante errores del origen)
+        {
+          name: "AllOrigins Wrapped",
+          urlFn: (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+        }
       ];
 
       let lastError = null;
 
       for (let i = 0; i < proxies.length; i++) {
-        const proxyUrl = proxies[i](targetUrl);
+        const proxy = proxies[i];
+        const proxyUrl = proxy.urlFn(targetUrl);
         try {
-          addLog(`Bypass CORS: Intentando obtener datos con proxy #${i + 1}...`);
-          const response = await fetch(proxyUrl);
+          addLog(`Bypass CORS: Intentando obtener datos con proxy #${i + 1} (${proxy.name})...`);
+          const response = await fetchWithTimeout(proxyUrl, {}, 6000);
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
           
-          if (proxyUrl.includes('allorigins.win/get')) {
+          if (proxy.name === "AllOrigins Wrapped") {
             const wrapperData = await response.json();
             if (wrapperData.contents) {
               return JSON.parse(wrapperData.contents);
@@ -2260,8 +2310,8 @@
             return await response.json();
           }
         } catch (err) {
-          console.warn(`Proxy #${i + 1} falló:`, err);
-          addLog(`Proxy #${i + 1} falló: ${err.message || err}`);
+          console.warn(`Proxy #${i + 1} (${proxy.name}) falló:`, err);
+          addLog(`Proxy #${i + 1} (${proxy.name}) falló: ${err.message || err}`);
           lastError = err;
         }
       }
