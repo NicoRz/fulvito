@@ -1751,6 +1751,7 @@
     
     let ffmpegInstance = null;
     let ffmpegLoaded = false;
+    let ffmpegHasRun = false;
     let activeMediaRecorder = null;
     let mediaRecorderInterval = null;
     let controlsTimeout = null;
@@ -2723,6 +2724,17 @@
       exportStatusDesc.textContent = 'Recortando a nivel binario sin pérdida de calidad. Por favor espera...';
       cancelExportBtn.classList.add('hidden');
       
+      if (ffmpegHasRun) {
+        addLog('FFmpeg: Reiniciando el motor para evitar bloqueos en cortes sucesivos...');
+        try {
+          ffmpegInstance.exit();
+        } catch (e) {
+          console.warn('Error al cerrar instancia anterior:', e);
+        }
+        ffmpegLoaded = false;
+        await initFFmpeg();
+      }
+
       addLog('FFmpeg: Preparando buffers en memoria...');
       
       try {
@@ -2759,6 +2771,7 @@
         const blob = new Blob([data.buffer], { type: 'video/mp4' });
         triggerDownload(blob, 'clip_video.mp4');
         
+        ffmpegHasRun = true;
         trackEvent('clip_exported_successfully', { method: 'ffmpeg', duration: duration });
 
         setTimeout(() => {
