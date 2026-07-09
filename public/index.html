@@ -1375,44 +1375,41 @@
 
         <!-- Contenido Tab Online (ZonaReplay) -->
         <div class="tab-content" id="tab-online-content">
-          <div class="url-input-container" id="url-input-container" style="width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: left;">
+          <div style="width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: stretch; text-align: left;">
             <p style="color: var(--text-muted); font-size: 13px; text-align: center; margin-bottom: 8px;">
-              Ingresa el link del video de ZonaReplay para obtener los comandos de descarga.
+              Configura los datos del partido para generar el comando de descarga de FFmpeg.
             </p>
-            <div style="display: flex; gap: 8px; width: 100%;">
-              <input type="text" id="zonareplay-url-input" placeholder="https://www.zonareplay.com/video/39710" style="flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; color: var(--text-main); font-size: 14px; outline: none; transition: var(--transition-base);" />
-              <button id="load-zonareplay-btn" class="btn btn-primary" style="padding: 0 20px;" type="button">Cargar</button>
-            </div>
-            <div id="url-error" class="hidden" style="color: var(--danger); font-size: 12px; text-align: center; font-weight: 600;"></div>
-          </div>
-
-          <!-- Loader de API -->
-          <div id="zonareplay-loading" class="hidden" style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 20px 0;">
-            <div class="spinner"></div>
-            <span style="font-size: 13px; color: var(--text-muted);">Obteniendo información de ZonaReplay...</span>
-          </div>
-
-          <!-- Caja de comando y detalles -->
-          <div id="zonareplay-details" class="hidden" style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
-            <div class="clip-meta-box" style="background: rgba(255, 255, 255, 0.02); text-align: left; padding: 12px;">
-              <div class="meta-row" style="margin-bottom: 2px;">
-                <span class="meta-lbl">Partido:</span>
-                <span class="meta-val" id="zr-meta-field" style="font-weight: 700; color: var(--text-main);">--</span>
+            
+            <!-- Grid de Configuración del Partido -->
+            <div class="zr-generator-form" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%;">
+              <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="zr-complejo" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Complejo</label>
+                <input type="text" id="zr-complejo" value="El-Calcio" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-base);" />
               </div>
-              <div class="meta-row">
-                <span class="meta-lbl">Fecha/Hora:</span>
-                <span class="meta-val" id="zr-meta-datetime">--</span>
+              <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="zr-cancha" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Cancha</label>
+                <input type="text" id="zr-cancha" value="Cancha-1" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-base);" />
+              </div>
+              <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="zr-fecha" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Fecha</label>
+                <input type="date" id="zr-fecha" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-base); color-scheme: dark;" />
+              </div>
+              <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                <label for="zr-hora" style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Hora</label>
+                <select id="zr-hora" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px; color: var(--text-main); font-size: 13px; outline: none; transition: var(--transition-base); color-scheme: dark; cursor: pointer;">
+                  <!-- Se generarán dinámicamente con JS -->
+                </select>
               </div>
             </div>
 
             <!-- Selector de Sistema Operativo -->
-            <div style="display: flex; gap: 8px; margin-top: 4px; width: 100%;">
+            <div style="display: flex; gap: 8px; margin-top: 8px; width: 100%;">
               <button id="cmd-os-linux" class="os-btn active" type="button">Linux / macOS (Bash)</button>
               <button id="cmd-os-windows" class="os-btn" type="button">Windows (cmd/PS)</button>
             </div>
 
             <!-- Terminal para copiar comando -->
-            <div class="terminal-box">
+            <div class="terminal-box" style="margin-top: 4px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">Comando de Descarga (FFmpeg)</span>
                 <button id="copy-cmd-btn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" type="button">
@@ -1424,13 +1421,6 @@
                 </button>
               </div>
               <code id="ffmpeg-command-text" class="terminal-code"></code>
-            </div>
-
-            <!-- Botones de Acción -->
-            <div style="display: flex; gap: 12px; width: 100%; margin-top: 8px;">
-              <button id="reset-url-btn" class="btn btn-secondary" style="flex: 1;" type="button">
-                Cargar Otro Enlace
-              </button>
             </div>
           </div>
         </div>
@@ -1740,17 +1730,13 @@
     const tabOnlineContent = document.getElementById('tab-online-content');
     const dropzone = document.getElementById('dropzone');
     
-    const zrUrlInput = document.getElementById('zonareplay-url-input');
-    const loadZrBtn = document.getElementById('load-zonareplay-btn');
-    const zrLoading = document.getElementById('zonareplay-loading');
-    const zrDetails = document.getElementById('zonareplay-details');
-    const zrMetaField = document.getElementById('zr-meta-field');
-    const zrMetaDatetime = document.getElementById('zr-meta-datetime');
+    const zrComplejo = document.getElementById('zr-complejo');
+    const zrCancha = document.getElementById('zr-cancha');
+    const zrFecha = document.getElementById('zr-fecha');
+    const zrHora = document.getElementById('zr-hora');
     const ffmpegCmdText = document.getElementById('ffmpeg-command-text');
     const copyCmdBtn = document.getElementById('copy-cmd-btn');
     const copyBtnText = document.getElementById('copy-btn-text');
-    const resetUrlBtn = document.getElementById('reset-url-btn');
-    const urlError = document.getElementById('url-error');
 
     const cmdOsLinuxBtn = document.getElementById('cmd-os-linux');
     const cmdOsWindowsBtn = document.getElementById('cmd-os-windows');
@@ -2125,7 +2111,6 @@
         tabOnlineBtn.classList.remove('active');
         tabLocalContent.classList.add('active');
         tabOnlineContent.classList.remove('active');
-        urlError.classList.add('hidden');
       });
 
       tabOnlineBtn.addEventListener('click', () => {
@@ -2133,7 +2118,6 @@
         tabLocalBtn.classList.remove('active');
         tabOnlineContent.classList.add('active');
         tabLocalContent.classList.remove('active');
-        urlError.classList.add('hidden');
       });
     }
 
@@ -2211,212 +2195,82 @@
       resetZoom(false);
     }
 
-    // --- Lógica de Carga y Resolución de ZonaReplay ---
-    let zrPlaylistUrl = "";
-    let zrMatchName = "";
-
-    if (loadZrBtn) {
-      loadZrBtn.addEventListener('click', fetchZonaReplayVideo);
-    }
-
-    if (zrUrlInput) {
-      zrUrlInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          fetchZonaReplayVideo();
-        }
-      });
-    }
-
-    // --- Cadena de Proxies Robustecida para evitar bloqueos de CORS ---
-    async function fetchWithProxy(targetUrl) {
-      // Helper para hacer fetch con timeout usando AbortController
-      async function fetchWithTimeout(url, options = {}, timeoutMs = 6000) {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-          const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-          });
-          clearTimeout(id);
-          return response;
-        } catch (err) {
-          clearTimeout(id);
-          if (err.name === 'AbortError') {
-            throw new Error(`Tiempo de espera agotado (${timeoutMs / 1000}s)`);
-          }
-          throw err;
-        }
-      }
-
-      // 1. Intentar petición directa por si el servidor soporta CORS o el usuario tiene un bypass/extensión
-      try {
-        addLog("Intentando obtener datos directamente sin proxy...");
-        const response = await fetchWithTimeout(targetUrl, {}, 4000);
-        if (response.ok) {
-          addLog("ZonaReplay: Datos obtenidos directamente con éxito.");
-          return await response.json();
-        } else {
-          throw new Error(`HTTP ${response.status}`);
-        }
-      } catch (directErr) {
-        console.warn("Petición directa falló:", directErr);
-        addLog(`Petición directa falló (CORS o timeout): ${directErr.message || directErr}`);
-      }
-
-      const proxies = [
-        // 1. AllOrigins Raw
-        {
-          name: "AllOrigins Raw",
-          urlFn: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-        },
-        // 2. Corsproxy.io (Excelente velocidad en navegador, bloquea peticiones de servidor)
-        {
-          name: "Corsproxy.io",
-          urlFn: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
-        },
-        // 3. Codetabs Proxy (Excelente alternativa libre de CORS)
-        {
-          name: "Codetabs Proxy",
-          urlFn: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-        },
-        // 4. AllOrigins Wrapped (JSON Wrapper que asegura CORS incluso ante errores del origen)
-        {
-          name: "AllOrigins Wrapped",
-          urlFn: (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
-        }
-      ];
-
-      let lastError = null;
-
-      for (let i = 0; i < proxies.length; i++) {
-        const proxy = proxies[i];
-        const proxyUrl = proxy.urlFn(targetUrl);
-        try {
-          addLog(`Bypass CORS: Intentando obtener datos con proxy #${i + 1} (${proxy.name})...`);
-          const response = await fetchWithTimeout(proxyUrl, {}, 6000);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          
-          if (proxy.name === "AllOrigins Wrapped") {
-            const wrapperData = await response.json();
-            if (wrapperData.contents) {
-              return JSON.parse(wrapperData.contents);
-            } else {
-              throw new Error("Respuesta del proxy vacía.");
-            }
-          } else {
-            return await response.json();
-          }
-        } catch (err) {
-          console.warn(`Proxy #${i + 1} (${proxy.name}) falló:`, err);
-          addLog(`Proxy #${i + 1} (${proxy.name}) falló: ${err.message || err}`);
-          lastError = err;
-        }
-      }
-
-      throw lastError || new Error("Todos los proxies de la cadena fallaron.");
-    }
-
-    async function fetchZonaReplayVideo() {
-      const urlText = zrUrlInput.value.trim();
-      urlError.classList.add('hidden');
+    // --- Lógica de Generación de Script para ZonaReplay (Fútbol) ---
+    function generateFfmpegCommand() {
+      if (!zrComplejo || !zrCancha || !zrFecha || !zrHora || !ffmpegCmdText) return;
       
-      if (!urlText) {
-        showUrlError("Por favor ingresa un enlace.");
+      const complejo = zrComplejo.value.trim();
+      const cancha = zrCancha.value.trim();
+      const dateVal = zrFecha.value;
+      const hora = zrHora.value;
+      
+      if (!complejo || !cancha || !dateVal || !hora) {
+        ffmpegCmdText.textContent = "Por favor, completa todos los campos.";
         return;
       }
-
-      // Validar expresión regular para extraer ID del video
-      let videoId = "";
-      if (/^\d+$/.test(urlText)) {
-        videoId = urlText;
-      } else {
-        const match = urlText.match(/(?:zonareplay\.com\/video\/)(\d+)/);
-        if (!match) {
-          showUrlError("El enlace no parece ser un video válido de ZonaReplay (ej: https://www.zonareplay.com/video/39710) ni un ID numérico.");
-          return;
-        }
-        videoId = match[1];
-      }
-
-      addLog(`Consultando API de ZonaReplay para video ID: ${videoId}`);
       
-      // Mostrar loading
-      document.getElementById('url-input-container').classList.add('hidden');
-      zrLoading.classList.remove('hidden');
-      zrDetails.classList.add('hidden');
+      const parts = dateVal.split('-');
+      if (parts.length !== 3) return;
+      const [y, m, d] = parts;
+      
+      const urlDate = `${y}-${m}-${d}-${hora}`;
+      const fileDate = `${d}-${m}-${y}`;
+      
+      // Normalizar nombres para el archivo de salida
+      const cleanComplejoName = complejo.replace(/[\s\-\/]+/g, '_');
+      const cleanCanchaName = cancha.replace(/[\s\-\/]+/g, '_');
+      const filename = `${cleanComplejoName}_${cleanCanchaName}_${fileDate}.mp4`;
+      
+      const zrPlaylistUrl = `https://zonareplay-b2.s3.us-east-005.backblazeb2.com/${complejo}/${cancha}/${urlDate}/playlist.m3u8`;
+      
+      cmdLinux = `ffmpeg -i '${zrPlaylistUrl}' -c copy '${filename}'`;
+      cmdWindows = `ffmpeg -i "${zrPlaylistUrl}" -c copy "${filename}"`;
+      
+      ffmpegCmdText.textContent = activeOS === "linux" ? cmdLinux : cmdWindows;
+    }
 
-      try {
-        const apiUrl = `https://www.zonareplay.com/api/videos/${videoId}`;
-        // Obtener datos del video usando la cadena de proxies
-        const data = await fetchWithProxy(apiUrl);
-        
-        if (!data.file_url) {
-          throw new Error("No se encontró la URL del video en la respuesta.");
+    function initZonaReplayGenerator() {
+      if (!zrFecha || !zrHora) return;
+      
+      // Inicializar fecha local del sistema
+      const localDate = new Date();
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      zrFecha.value = `${year}-${month}-${day}`;
+      
+      // Inicializar selector de hora
+      zrHora.innerHTML = "";
+      const currentHour = localDate.getHours();
+      for (let h = 0; h < 24; h++) {
+        const hStr = String(h).padStart(2, '0');
+        const opt = document.createElement('option');
+        opt.value = hStr;
+        opt.textContent = `${hStr}:00hs (${hStr})`;
+        if (h === currentHour) {
+          opt.selected = true;
         }
-
-        zrPlaylistUrl = data.file_url;
-        
-        // Formatear detalles
-        const fieldName = data.field_id ? data.field_id.replace(/-/g, ' ') : 'Partido ZonaReplay';
-        let matchDateStr = "";
-        if (data.match_date) {
-          const dateObj = new Date(data.match_date);
-          matchDateStr = dateObj.toLocaleDateString('es-AR');
-        }
-        const matchTimeStr = data.match_time || "";
-        
-        zrMatchName = `${fieldName.replace(/\s+/g, '_')}_${matchDateStr.replace(/\//g, '-')}`;
-        onlineVideoName = `${zrMatchName}.mp4`;
-
-        // Llenar campos meta
-        zrMetaField.textContent = fieldName;
-        zrMetaDatetime.textContent = `${matchDateStr} ${matchTimeStr}`.trim();
-        
-        // Generar comandos FFmpeg para Linux/macOS y Windows
-        cmdLinux = `ffmpeg -i '${zrPlaylistUrl}' -c copy '${onlineVideoName}'`;
-        cmdWindows = `ffmpeg -i "${zrPlaylistUrl}" -c copy "${onlineVideoName}"`;
-
-        // Mostrar el comando correspondiente al OS seleccionado actualmente
-        ffmpegCmdText.textContent = activeOS === "linux" ? cmdLinux : cmdWindows;
-
-        // Mostrar detalles
-        zrLoading.classList.add('hidden');
-        zrDetails.classList.remove('hidden');
-        
-        addLog(`ZonaReplay: Información obtenida con éxito. Cancha: ${fieldName}. Playlist M3U8: ${zrPlaylistUrl}`);
-        showToast('Video Encontrado', 'Se cargó la información del partido correctamente.', 'success');
-        
-      } catch (err) {
-        console.error(err);
-        addLog(`Error al consultar ZonaReplay: ${err.message}`);
-        showUrlError(`Error al consultar información: ${err.message}. Intenta de nuevo o verifica tu conexión.`);
-        
-        // Volver a mostrar input
-        zrLoading.classList.add('hidden');
-        document.getElementById('url-input-container').classList.remove('hidden');
+        zrHora.appendChild(opt);
       }
+      
+      // Event Listeners para cambios
+      zrComplejo.addEventListener('input', generateFfmpegCommand);
+      zrCancha.addEventListener('input', generateFfmpegCommand);
+      zrFecha.addEventListener('input', generateFfmpegCommand);
+      zrHora.addEventListener('change', generateFfmpegCommand);
+      
+      // Generar comando inicial
+      generateFfmpegCommand();
     }
 
-    function showUrlError(msg) {
-      urlError.textContent = msg;
-      urlError.classList.remove('hidden');
-    }
+    // Inicializar el generador inmediatamente
+    initZonaReplayGenerator();
 
-    if (resetUrlBtn) {
-      resetUrlBtn.addEventListener('click', () => {
-        zrUrlInput.value = "";
-        zrDetails.classList.add('hidden');
-        document.getElementById('url-input-container').classList.remove('hidden');
-      });
-    }
-
+    // Copiar comando al portapapeles
     if (copyCmdBtn) {
       copyCmdBtn.addEventListener('click', async () => {
         const cmd = ffmpegCmdText.textContent;
-        if (!cmd) return;
+        if (!cmd || cmd.startsWith("Por favor")) return;
         
         try {
           await navigator.clipboard.writeText(cmd);
@@ -2437,24 +2291,20 @@
       });
     }
 
-    // Listeners para cambiar OS en la UI
+    // Cambiar OS seleccionado en la terminal
     if (cmdOsLinuxBtn && cmdOsWindowsBtn) {
       cmdOsLinuxBtn.addEventListener('click', () => {
         activeOS = "linux";
         cmdOsLinuxBtn.classList.add('active');
         cmdOsWindowsBtn.classList.remove('active');
-        if (cmdLinux) {
-          ffmpegCmdText.textContent = cmdLinux;
-        }
+        generateFfmpegCommand();
       });
 
       cmdOsWindowsBtn.addEventListener('click', () => {
         activeOS = "windows";
         cmdOsWindowsBtn.classList.add('active');
         cmdOsLinuxBtn.classList.remove('active');
-        if (cmdWindows) {
-          ffmpegCmdText.textContent = cmdWindows;
-        }
+        generateFfmpegCommand();
       });
     }
 
@@ -2470,11 +2320,6 @@
         playerWrapper.classList.add('hidden');
         uploaderCard.classList.remove('hidden');
         fileInput.value = '';
-        
-        // Reset del input y estado de detalles de ZonaReplay
-        zrUrlInput.value = "";
-        zrDetails.classList.add('hidden');
-        document.getElementById('url-input-container').classList.remove('hidden');
         
         addLog('Video cerrado. Pantalla de carga activa.');
       }
