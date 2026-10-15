@@ -3332,9 +3332,11 @@
         return;
       }
 
-      let mimeType = 'video/mp4';
-      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp9';
+      let mimeType = 'video/mp4;codecs=avc1.42E01E,mp4a.40.2';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/mp4';
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=h264';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8';
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
       
       addLog(`MediaRecorder: Utilizando codificador ${mimeType}`);
@@ -3354,7 +3356,7 @@
         if (e.data && e.data.size > 0) chunks.push(e.data);
       };
       
-      activeMediaRecorder.onstop = () => {
+      activeMediaRecorder.onstop = async () => {
         clearInterval(mediaRecorderInterval);
         
         video.playbackRate = originalPlaybackRate;
@@ -3363,15 +3365,64 @@
         
         if (chunks.length === 0) {
           addLog('MediaRecorder: Grabación vacía. Cancelado.');
+          exportOverlay.classList.add('hidden');
           return;
         }
         
-        const blob = new Blob(chunks, { type: mimeType });
-        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const rawBlob = new Blob(chunks, { type: mimeType });
+        let finalBlob = rawBlob;
+        let ext = 'mp4';
+
+        // Si se grabó en webm y FFmpeg está disponible, transcodificar a MP4 para WhatsApp
+        if (!mimeType.includes('mp4') && typeof FFmpeg !== 'undefined' && ffmpegInstance) {
+          try {
+            exportStatusTitle.textContent = 'Optimizando para WhatsApp';
+            exportStatusDesc.textContent = 'Empaquetando en MP4 estándar...';
+            updateExportProgress(0.95);
+
+            if (ffmpegHasRun) {
+              try { ffmpegInstance.exit(); } catch (e) {}
+              ffmpegLoaded = false;
+              await initFFmpeg();
+            }
+
+            const { fetchFile } = FFmpeg;
+            const inputName = 'mr_input.webm';
+            const outputName = 'clip_whatsapp.mp4';
+
+            ffmpegInstance.FS('writeFile', inputName, await fetchFile(rawBlob));
+            await ffmpegInstance.run(
+              '-i', inputName,
+              '-c:v', 'libx264',
+              '-preset', 'ultrafast',
+              '-crf', '22',
+              '-pix_fmt', 'yuv420p',
+              '-c:a', 'aac',
+              '-b:a', '128k',
+              '-movflags', '+faststart',
+              outputName
+            );
+
+            const mp4Data = ffmpegInstance.FS('readFile', outputName);
+            try {
+              ffmpegInstance.FS('unlink', inputName);
+              ffmpegInstance.FS('unlink', outputName);
+            } catch (err) {}
+
+            finalBlob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
+            ext = 'mp4';
+            ffmpegHasRun = true;
+          } catch (err) {
+            finalBlob = rawBlob;
+            ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          }
+        } else {
+          ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        }
         
         const duration = clipEnd - clipStart;
-        addLog('MediaRecorder: Grabación finalizada. Descargando...');
-        triggerDownload(blob, `clip_video.${ext}`);
+        addLog(`MediaRecorder: Grabación finalizada. Descargando clip_video.${ext}...`);
+        triggerDownload(finalBlob, `clip_video.${ext}`);
         
         trackEvent('clip_exported_successfully', { method: 'mediarecorder', duration: duration });
 
@@ -3459,9 +3510,9 @@
       let cw = Math.round((vw * S) / 2) * 2;
       let ch = Math.round((vh * S) / 2) * 2;
 
-      // Cap a 1920x1080 max para evitar sobrecarga de GPU/memoria
-      if (cw > 1920 || ch > 1080) {
-        const factor = Math.min(1920 / cw, 1080 / ch);
+      // Cap a 1280x720 para fluidez en tiempo real y compatibilidad estándar con WhatsApp
+      if (cw > 1280 || ch > 720) {
+        const factor = Math.min(1280 / cw, 720 / ch);
         cw = Math.round((cw * factor) / 2) * 2;
         ch = Math.round((ch * factor) / 2) * 2;
       }
@@ -3505,16 +3556,19 @@
         console.warn('Audio capture no disponible para canvas:', e);
       }
 
-      let mimeType = 'video/mp4';
-      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp9';
+      // Priorizar codificadores compatibles con MP4 / H.264
+      let mimeType = 'video/mp4;codecs=avc1.42E01E,mp4a.40.2';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/mp4';
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=h264';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8';
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
 
       let recorder;
       try {
         recorder = new MediaRecorder(stream, { 
           mimeType, 
-          videoBitsPerSecond: 6000000 
+          videoBitsPerSecond: 5000000 
         });
       } catch (e) {
         addLog(`Fallo al inicializar grabador de efectos: ${e.message}`);
@@ -3549,7 +3603,7 @@
         }
       }
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         clearInterval(renderInterval);
 
         video.playbackRate = originalPlaybackRate;
@@ -3563,16 +3617,78 @@
           return;
         }
 
-        const blob = new Blob(chunks, { type: mimeType });
-        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-        const filename = `clip_zoom_${zoomScale.toFixed(1)}x_${targetSpeed}x.${ext}`;
-        addLog(`MediaRecorder (Efectos): Grabación finalizada. Descargando ${filename}...`);
-        triggerDownload(blob, filename);
+        const rawBlob = new Blob(chunks, { type: mimeType });
+        addLog(`Captura visual finalizada (${formatBytes(rawBlob.size)}). Optimizando compatibilidad para WhatsApp...`);
 
-        trackEvent('clip_exported_successfully', { method: 'effects_canvas', zoom: zoomScale, speed: targetSpeed });
+        exportStatusTitle.textContent = 'Optimizando para WhatsApp';
+        exportStatusDesc.textContent = 'Codificando en MP4 estándar (H.264 / AAC) con faststart...';
+        updateExportProgress(0.92);
+
+        let finalBlob = null;
+        let finalExt = 'mp4';
+
+        // Convertir mediante FFmpeg para garantizar que WhatsApp, iOS y Android reproduzcan el video sin problemas
+        if (typeof FFmpeg !== 'undefined' && ffmpegInstance) {
+          try {
+            if (ffmpegHasRun) {
+              addLog('FFmpeg: Preparando motor para empaquetar video...');
+              try { ffmpegInstance.exit(); } catch (e) {}
+              ffmpegLoaded = false;
+              await initFFmpeg();
+            }
+
+            const { fetchFile } = FFmpeg;
+            const inputName = 'effects_raw.webm';
+            const outputName = 'clip_whatsapp.mp4';
+
+            addLog('FFmpeg: Escribiendo flujo en memoria virtual...');
+            ffmpegInstance.FS('writeFile', inputName, await fetchFile(rawBlob));
+
+            addLog('FFmpeg: Codificando a H.264 (yuv420p) + AAC con moov faststart...');
+            await ffmpegInstance.run(
+              '-i', inputName,
+              '-c:v', 'libx264',
+              '-preset', 'ultrafast',
+              '-crf', '22',
+              '-pix_fmt', 'yuv420p',
+              '-c:a', 'aac',
+              '-b:a', '128k',
+              '-movflags', '+faststart',
+              outputName
+            );
+
+            const mp4Data = ffmpegInstance.FS('readFile', outputName);
+            try {
+              ffmpegInstance.FS('unlink', inputName);
+              ffmpegInstance.FS('unlink', outputName);
+            } catch (err) {
+              console.warn('Limpieza FS virtual:', err);
+            }
+
+            finalBlob = new Blob([mp4Data.buffer], { type: 'video/mp4' });
+            finalExt = 'mp4';
+            ffmpegHasRun = true;
+            addLog(`FFmpeg: Video MP4 estándar generado con éxito (${formatBytes(finalBlob.size)}). 100% compatible con WhatsApp.`);
+          } catch (transcodeErr) {
+            console.warn('Fallo en transcodificación FFmpeg, usando archivo crudo:', transcodeErr);
+            addLog(`Aviso: Error en empaquetado FFmpeg (${transcodeErr.message || transcodeErr}). Usando captura directa.`);
+            finalBlob = rawBlob;
+            finalExt = mimeType.includes('mp4') ? 'mp4' : 'webm';
+          }
+        } else {
+          addLog('Aviso: Motor FFmpeg no disponible. Descargando captura directa del navegador.');
+          finalBlob = rawBlob;
+          finalExt = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        }
+
+        const filename = `clip_zoom_${zoomScale.toFixed(1)}x_${targetSpeed}x.${finalExt}`;
+        addLog(`Descargando ${filename}...`);
+        triggerDownload(finalBlob, filename);
+
+        trackEvent('clip_exported_successfully', { method: 'effects_canvas', zoom: zoomScale, speed: targetSpeed, format: finalExt });
 
         exportOverlay.classList.add('hidden');
-        showToast('¡Clip con Efectos Exportado!', `Guardado con Zoom (${zoomScale.toFixed(1)}x) y velocidad ${targetSpeed}x.`, 'success');
+        showToast('¡Clip con Efectos Exportado!', `Guardado en formato ${finalExt.toUpperCase()} compatible con WhatsApp.`, 'success');
       };
 
       cancelExportBtn.onclick = () => {
